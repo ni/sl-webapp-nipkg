@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import * as fs from 'fs-extra';
-import * as path from 'path';
-const chalk = require('chalk');
-import { AngularNipkgBuilder } from './builder';
-import { NipkgConfig, BuildOptions } from './types';
+import fs from 'fs-extra';
+import path from 'path';
+import chalk from 'chalk';
+import { AngularNipkgBuilder } from './builder.js';
+import { NipkgConfig, BuildOptions } from './types.js';
 
 const program = new Command();
 

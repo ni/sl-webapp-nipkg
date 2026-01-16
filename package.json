@@ -2,6 +2,7 @@
   "name": "angular-nipkg-builder",
   "version": "1.0.1",
   "description": "Build tool for packaging Angular applications into .nipkg format",
+  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "ng-nipkg": "dist/cli.js"

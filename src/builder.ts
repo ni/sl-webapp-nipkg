@@ -1,8 +1,8 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
+import fs from 'fs-extra';
+import path from 'path';
 import { execSync } from 'child_process';
-const chalk = require('chalk');
-import { NipkgConfig, BuildOptions } from './types';
+import chalk from 'chalk';
+import { NipkgConfig, BuildOptions } from './types.js';
 
 export class AngularNipkgBuilder {
   private config: NipkgConfig;
