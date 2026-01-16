@@ -1,0 +1,9 @@
+{
+  "name": "angular-nipkg-builder",
+  "version": "1.0.0",
+  "description": "Build tool for packaging Angular applications into .nipkg format",
+  "maintainer": "Your Name",
+  "architecture": "windows_x64",
+  "displayName": "angular-nipkg-builder",
+  "userVisible": true
+}
