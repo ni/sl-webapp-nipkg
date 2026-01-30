@@ -3,12 +3,10 @@
   "version": "1.0.0",
   "description": "My Angular application packaged for National Instruments",
   "maintainer": "John Doe <john.doe@company.com>",
-  "architecture": "windows_x64",
+  "architecture": "all",
   "displayName": "My Angular App",
   "projectName": "my-angular-app",
   "buildDir": "dist/my-angular-app/browser",
   "userVisible": true,
-  "depends": [
-    "ni-labview-runtime-2023-q1"
-  ]
+  "depends": ["ni-labview-runtime-2023-q1"]
 }

@@ -26,17 +26,16 @@ describe('Types and Configuration', () => {
         version: '1.0.0',
         description: 'Test application',
         maintainer: 'Test User <test@example.com>',
-        architecture: 'windows_x64',
+        architecture: 'all',
         displayName: 'My Test App',
         projectName: 'custom-project',
         buildDir: 'dist/custom/browser',
         outputDir: 'custom-output',
-        nipkgPath: 'C:\\\\Custom\\\\Path\\\\nipkg.exe',
         depends: ['dep1', 'dep2'],
         userVisible: true
       };
 
-      expect(config.architecture).toBe('windows_x64');
+      expect(config.architecture).toBe('all');
       expect(config.depends).toEqual(['dep1', 'dep2']);
       expect(config.userVisible).toBe(true);
     });
@@ -62,7 +61,7 @@ describe('Configuration File Handling', () => {
       version: '2.1.0',
       description: 'Config file test',
       maintainer: 'File Test <file@test.com>',
-      architecture: 'windows_x64'
+      architecture: 'all'
     };
 
     const configPath = path.join(tempDir, 'nipkg.config.json');
@@ -140,9 +139,9 @@ describe('Utility Functions', () => {
       await fs.writeJson(angularJsonPath, angularJson);
 
       const readAngularJson = await fs.readJson(angularJsonPath);
-      const projectName = readAngularJson.defaultProject || 
-                          Object.keys(readAngularJson.projects)[0];
-      
+      const projectName = readAngularJson.defaultProject ||
+        Object.keys(readAngularJson.projects)[0];
+
       expect(projectName).toBe('my-angular-app');
     });
 
@@ -160,7 +159,7 @@ describe('Utility Functions', () => {
 
       const readAngularJson = await fs.readJson(angularJsonPath);
       const projectName = Object.keys(readAngularJson.projects)[0];
-      
+
       expect(projectName).toBe('first-project');
     });
   });
@@ -172,7 +171,7 @@ describe('Utility Functions', () => {
         version: '1.2.3',
         description: 'Control file test',
         maintainer: 'Control Test <control@test.com>',
-        architecture: 'windows_x64',
+        architecture: 'all',
         displayName: 'Control Test App',
         userVisible: true,
         depends: ['runtime-dep-1', 'runtime-dep-2']
@@ -180,8 +179,8 @@ describe('Utility Functions', () => {
 
       const generateControlFile = (cfg: NipkgConfig): string => {
         const depends = cfg.depends ? cfg.depends.join(', ') : '';
-        
-        return `Architecture: ${cfg.architecture || 'windows_x64'}
+
+        return `Architecture: ${cfg.architecture || 'all'}
 ${depends ? `Depends: ${depends}` : '# Depends:'}
 Description: ${cfg.description}
 ${cfg.displayName ? `DisplayName: ${cfg.displayName}` : '# DisplayName:'}
@@ -194,7 +193,7 @@ Version: ${cfg.version}
       };
 
       const controlContent = generateControlFile(config);
-      
+
       expect(controlContent).toContain('Package: control-test-app');
       expect(controlContent).toContain('Version: 1.2.3');
       expect(controlContent).toContain('Depends: runtime-dep-1, runtime-dep-2');
@@ -212,8 +211,8 @@ Version: ${cfg.version}
 
       const generateControlFile = (cfg: NipkgConfig): string => {
         const depends = cfg.depends ? cfg.depends.join(', ') : '';
-        
-        return `Architecture: ${cfg.architecture || 'windows_x64'}
+
+        return `Architecture: ${cfg.architecture || 'all'}
 ${depends ? `Depends: ${depends}` : '# Depends:'}
 Description: ${cfg.description}
 ${cfg.displayName ? `DisplayName: ${cfg.displayName}` : '# DisplayName:'}
@@ -226,9 +225,9 @@ Version: ${cfg.version}
       };
 
       const controlContent = generateControlFile(config);
-      
+
       expect(controlContent).toContain('Package: minimal-app');
-      expect(controlContent).toContain('Architecture: windows_x64');
+      expect(controlContent).toContain('Architecture: all');
       expect(controlContent).toContain('# Depends:');
       expect(controlContent).toContain('# DisplayName:');
       expect(controlContent).toContain('# UserVisible:');
@@ -274,7 +273,7 @@ describe('File Operations', () => {
     // Create existing file-package directory with a file
     await fs.ensureDir(filePackageDir);
     await fs.writeFile(oldFile, 'old content');
-    
+
     // Verify old file exists
     expect(await fs.pathExists(oldFile)).toBe(true);
 
@@ -288,7 +287,7 @@ describe('File Operations', () => {
     const controlDir = path.join(filePackageDir, 'control');
     const dataDir = path.join(filePackageDir, 'data');
     const applicationFilesDir = path.join(dataDir, 'ApplicationFiles_64');
-    
+
     await fs.ensureDir(applicationFilesDir);
     await fs.ensureDir(controlDir);
 
@@ -308,7 +307,7 @@ describe('File Operations', () => {
     // Create existing file-package directory with a file
     await fs.ensureDir(filePackageDir);
     await fs.writeFile(oldFile, 'preserved content');
-    
+
     // Verify old file exists
     expect(await fs.pathExists(oldFile)).toBe(true);
 
@@ -322,7 +321,7 @@ describe('File Operations', () => {
     const controlDir = path.join(filePackageDir, 'control');
     const dataDir = path.join(filePackageDir, 'data');
     const applicationFilesDir = path.join(dataDir, 'ApplicationFiles_64');
-    
+
     await fs.ensureDir(applicationFilesDir);
     await fs.ensureDir(controlDir);
 
@@ -346,7 +345,7 @@ describe('File Operations', () => {
     await fs.ensureDir(sourceDir);
     await fs.writeFile(path.join(sourceDir, 'index.html'), '<html>Test</html>');
     await fs.writeFile(path.join(sourceDir, 'main.js'), 'console.log("test");');
-    
+
     const assetsDir = path.join(sourceDir, 'assets');
     await fs.ensureDir(assetsDir);
     await fs.writeFile(path.join(assetsDir, 'logo.png'), 'fake-image-data');
@@ -366,12 +365,6 @@ describe('File Operations', () => {
 });
 
 describe('Path and Environment', () => {
-  test('should handle Windows paths correctly', () => {
-    const windowsPath = 'C:\\\\Program Files\\\\National Instruments\\\\NI Package Manager\\\\nipkg.exe';
-    expect(windowsPath).toContain('Program Files');
-    expect(windowsPath).toContain('nipkg.exe');
-  });
-
   test('should normalize path separators', () => {
     const testPath = path.join('dist', 'my-app', 'browser');
     const normalized = path.normalize(testPath);
@@ -413,7 +406,7 @@ describe('Build Options Validation', () => {
     const validateConfiguration = (config: any): string[] => {
       const errors: string[] = [];
       const required = ['name', 'version', 'description', 'maintainer'];
-      
+
       for (const field of required) {
         if (!config[field] || typeof config[field] !== 'string') {
           errors.push(`Missing or invalid ${field}`);

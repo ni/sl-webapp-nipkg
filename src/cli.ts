@@ -4,15 +4,22 @@ import { Command } from 'commander';
 import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
+import { fileURLToPath } from 'url';
 import { AngularNipkgBuilder } from './builder.js';
 import { NipkgConfig, BuildOptions } from './types.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Read version from package.json
+const packageJson = await fs.readJson(path.join(__dirname, '../package.json'));
 
 const program = new Command();
 
 program
   .name('ng-nipkg')
   .description('Build tool for packaging Angular applications into .nipkg format')
-  .version('1.0.0');
+  .version(packageJson.version);
 
 program
   .command('build')
@@ -25,9 +32,9 @@ program
   .action(async (options: any) => {
     try {
       const configPath = path.resolve(options.config);
-      
+
       let config: NipkgConfig;
-      
+
       if (fs.existsSync(configPath)) {
         config = await fs.readJson(configPath);
         console.log(chalk.blue(`📋 Using config from: ${configPath}`));
@@ -47,7 +54,7 @@ program
 
       const builder = new AngularNipkgBuilder(config, buildOptions);
       await builder.build();
-      
+
     } catch (error) {
       console.error(chalk.red.bold('❌ Error:'), (error as Error).message);
       process.exit(1);
@@ -60,7 +67,7 @@ program
   .action(async () => {
     try {
       const configPath = path.resolve('nipkg.config.json');
-      
+
       if (fs.existsSync(configPath)) {
         console.log(chalk.yellow('⚠️  nipkg.config.json already exists'));
         return;
@@ -68,10 +75,10 @@ program
 
       const config = await generateConfigFromPackageJson();
       await fs.writeJson(configPath, config, { spaces: 2 });
-      
+
       console.log(chalk.green('✅ Created nipkg.config.json'));
       console.log(chalk.cyan('💡 Edit the file to customize your package configuration'));
-      
+
     } catch (error) {
       console.error(chalk.red.bold('❌ Error:'), (error as Error).message);
       process.exit(1);
@@ -80,20 +87,20 @@ program
 
 async function generateConfigFromPackageJson(): Promise<NipkgConfig> {
   const packageJsonPath = path.resolve('package.json');
-  
+
   let packageJson: any = {};
   if (fs.existsSync(packageJsonPath)) {
     packageJson = await fs.readJson(packageJsonPath);
   }
 
   const projectName = packageJson.name || path.basename(process.cwd());
-  
+
   return {
     name: projectName,
     version: packageJson.version || '1.0.0',
     description: packageJson.description || `${projectName} Angular application`,
     maintainer: packageJson.author || 'user_name <user@example.com>',
-    architecture: 'windows_x64',
+    architecture: 'all',
     displayName: projectName,
     buildDir: `dist/${projectName}/browser`,
     userVisible: true

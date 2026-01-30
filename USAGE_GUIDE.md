@@ -42,7 +42,7 @@ This creates `nipkg.config.json`:
   "version": "1.0.1",
   "description": "My Angular application",
   "maintainer": "John Doe <john@company.com>",
-  "architecture": "windows_x64",
+  "architecture": "all",
   "displayName": "My App",
   "userVisible": true
 }
@@ -84,12 +84,11 @@ ng-nipkg build --build --configuration production --verbose
   "version": "2.1.3",
   "description": "Enterprise Angular application for National Instruments",
   "maintainer": "Enterprise Team <team@company.com>",
-  "architecture": "windows_x64",
+  "architecture": "all",
   "displayName": "My Enterprise App",
   "projectName": "my-enterprise-app",
   "buildDir": "dist/my-enterprise-app/browser",
   "outputDir": "packages",
-  "nipkgPath": "C:\\\\Program Files\\\\National Instruments\\\\NI Package Manager\\\\nipkg.exe",
   "userVisible": true,
   "depends": [
     "ni-labview-runtime-2023-q1",
@@ -187,7 +186,7 @@ your-angular-project/
 │   ├── your-app/                    # Angular build output
 │   │   └── browser/
 │   └── nipkg/                       # NIPKG packaging
-│       ├── your-app_1.0.0_windows_x64.nipkg  # Final package
+│       ├── your-app_1.0.0.nipkg  # Final package
 │       └── file-package/
 │           ├── debian-binary
 │           ├── control/
@@ -205,14 +204,6 @@ your-angular-project/
 
 ### Common Issues & Solutions
 
-**"nipkg executable not found"**
-```bash
-# Solution: Specify path in config
-{
-  "nipkgPath": "C:\\\\Program Files\\\\National Instruments\\\\NI Package Manager\\\\nipkg.exe"
-}
-```
-
 **"Angular build directory not found"**
 ```bash
 # Solution: Build first or use --build flag
@@ -223,6 +214,7 @@ ng-nipkg build --build
 ```
 
 **"This is not an Angular workspace"**
+
 ```bash
 # Solution: Run in Angular project directory with angular.json
 cd path/to/angular/project

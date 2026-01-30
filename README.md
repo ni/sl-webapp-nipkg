@@ -15,6 +15,7 @@ A Node.js tool for packaging Angular applications into `.nipkg` format for Natio
 - 🌈 **Beautiful CLI**: Colorful, informative command-line interface
 - ✅ **Well Tested**: Comprehensive test suite with 17 passing tests
 - 🔧 **CI/CD Ready**: Easy integration with build pipelines
+- 🆓 **No External Dependencies**: Creates .nipkg packages without requiring NI Package Manager
 
 ## Installation
 
@@ -34,16 +35,19 @@ npm install --save-dev angular-nipkg-builder
 ## Quick Start
 
 1. **Navigate to your Angular project**:
+
    ```bash
    cd my-angular-project
    ```
 
 2. **Initialize configuration**:
+
    ```bash
    ng-nipkg init
    ```
 
 3. **Edit the generated `nipkg.config.json`**:
+
    ```json
    {
      "name": "my-angular-app",
@@ -55,10 +59,11 @@ npm install --save-dev angular-nipkg-builder
      "userVisible": true
    }
    ```
-   
+
    **Note:** The `buildDir` should match the `outputPath` from your `angular.json` (plus `/browser` for Angular 19+).
 
 4. **Build and package**:
+
    ```bash
    ng-nipkg build --build --configuration production
    ```
@@ -66,16 +71,19 @@ npm install --save-dev angular-nipkg-builder
 ## CLI Commands
 
 ### `ng-nipkg build`
+
 Build and package your Angular application.
 
-**Options:**
+#### Options
+
 - `-b, --build` - Run `ng build` before packaging
-- `-c, --configuration <config>` - Angular build configuration (e.g., 'production') 
+- `-c, --configuration <config>` - Angular build configuration (e.g., 'production')
 - `-v, --verbose` - Enable verbose output
 - `--skip-cleanup` - Skip cleanup of existing packages
 - `--config <path>` - Custom config file path (default: 'nipkg.config.json')
 
-**Examples:**
+#### Examples
+
 ```bash
 # Build with production configuration
 ng-nipkg build --build --configuration production
@@ -88,6 +96,7 @@ ng-nipkg build --build --verbose --config my-nipkg.config.json
 ```
 
 ### `ng-nipkg init`
+
 Initialize a `nipkg.config.json` file in the current directory.
 
 ## Configuration
@@ -100,12 +109,11 @@ Initialize a `nipkg.config.json` file in the current directory.
 | `version` | string | ✅ | Package version (semver format) |
 | `description` | string | ✅ | Package description |
 | `maintainer` | string | ✅ | Maintainer information |
-| `architecture` | string | ❌ | Target architecture (default: 'windows_x64') |
+| `architecture` | string | ❌ | Target architecture (default: 'all') |
 | `displayName` | string | ❌ | Display name for the package |
 | `projectName` | string | ❌ | Angular project name (auto-detected) |
 | `buildDir` | string | ❌ | Custom build output directory |
 | `outputDir` | string | ❌ | Custom nipkg output directory |
-| `nipkgPath` | string | ❌ | Path to nipkg executable |
 | `depends` | string[] | ❌ | Package dependencies |
 | `userVisible` | boolean | ❌ | Whether package is user visible |
 
@@ -117,7 +125,7 @@ Initialize a `nipkg.config.json` file in the current directory.
   "version": "1.2.3",
   "description": "A powerful Angular application for National Instruments", 
   "maintainer": "John Doe <john.doe@company.com>",
-  "architecture": "windows_x64",
+  "architecture": "all",
   "displayName": "My Angular Application",
   "projectName": "my-angular-app",
   "userVisible": true,
@@ -126,8 +134,7 @@ Initialize a `nipkg.config.json` file in the current directory.
     "ni-visa-runtime >= 23.0"
   ],
   "buildDir": "dist/my-angular-app/browser",
-  "outputDir": "packages",
-  "nipkgPath": "C:\\\\Program Files\\\\National Instruments\\\\NI Package Manager\\\\nipkg.exe"
+  "outputDir": "packages"
 }
 ```
 
@@ -272,7 +279,7 @@ your-angular-project/
 
 ## Requirements
 
-- Node.js 16+ 
+- Node.js 16+
 - Angular CLI
 - National Instruments Package Manager (nipkg)
 
@@ -315,19 +322,18 @@ ng-nipkg --help
 
 ### Common Issues
 
-**"nipkg executable not found"**
-- Ensure NI Package Manager is installed
-- Specify the path in `nipkg.config.json`: `"nipkgPath": "C:\\\\Path\\\\To\\\\nipkg.exe"`
+#### "Angular build directory not found"
 
-**"Angular build directory not found"**  
 - Run with `--build` flag to build before packaging
 - Check that your Angular project builds successfully with `ng build`
 
-**"This is not an Angular workspace"**
+#### "This is not an Angular workspace"
+
 - Ensure you're running the command in an Angular project directory
 - Check that `angular.json` exists in the current directory
 
-**Package dependencies missing**
+#### Package dependencies missing
+
 - Add required NI runtime dependencies to `depends` array in config
 - Example: `"depends": ["ni-labview-runtime-2023-q1"]`
 
@@ -354,4 +360,4 @@ MIT © [Your Name]
 
 ---
 
-**Made with ❤️ for the National Instruments community**
+*Made with ❤️ for the National Instruments community*

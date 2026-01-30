@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
+import * as tar from 'tar';
 import { NipkgConfig, BuildOptions } from './types.js';
 
 export class AngularNipkgBuilder {
@@ -20,6 +21,31 @@ export class AngularNipkgBuilder {
    */
   private isAngularWorkspace(): boolean {
     return fs.existsSync(path.join(this.projectRoot, 'angular.json'));
+  }
+
+  /**
+   * Get the package version from config or package.json
+   */
+  private getVersion(): string {
+    // If version is explicitly set in config, use it
+    if (this.config.version) {
+      return this.config.version;
+    }
+
+    // Otherwise, try to read from package.json
+    try {
+      const packageJson = fs.readJsonSync(path.join(this.projectRoot, 'package.json'));
+      if (packageJson.version) {
+        console.log(chalk.cyan(`📦 Using version ${packageJson.version} from package.json`));
+        return packageJson.version;
+      }
+    } catch (error) {
+      // Fall through
+    }
+
+    // Default to 1.0.0 if not found anywhere
+    console.log(chalk.yellow('⚠️  No version found, defaulting to 1.0.0'));
+    return '1.0.0';
   }
 
   /**
@@ -45,11 +71,11 @@ export class AngularNipkgBuilder {
   private getBuildOutputPath(): string | null {
     try {
       const angularJson = fs.readJsonSync(path.join(this.projectRoot, 'angular.json'));
-      
+
       // Get the first project (or default project if specified)
       const projectKey = angularJson.defaultProject || Object.keys(angularJson.projects)[0];
       const project = angularJson.projects[projectKey];
-      
+
       // Return the outputPath from build options
       if (project?.architect?.build?.options?.outputPath) {
         return project.architect.build.options.outputPath;
@@ -61,25 +87,61 @@ export class AngularNipkgBuilder {
   }
 
   /**
-   * Find nipkg executable path
+   * Create an ar archive (Unix archiver format used by Debian packages)
    */
-  private findNipkgPath(): string {
-    if (this.config.nipkgPath) {
-      return this.config.nipkgPath;
+  private async createArArchive(outputPath: string, files: Array<{ name: string, data: Buffer }>): Promise<void> {
+    const AR_MAGIC = '!<arch>\n';
+    const chunks: Buffer[] = [Buffer.from(AR_MAGIC)];
+
+    for (const file of files) {
+      // Pad filename to 16 bytes
+      const filename = file.name.padEnd(16, ' ');
+      // Current timestamp
+      const timestamp = Math.floor(Date.now() / 1000).toString().padEnd(12, ' ');
+      // Owner/Group ID (use 0 for root)
+      const owner = '0'.padEnd(6, ' ');
+      const group = '0'.padEnd(6, ' ');
+      // File mode (octal, typically 100644 for regular files)
+      const mode = '100644'.padEnd(8, ' ');
+      // File size
+      const size = file.data.length.toString().padEnd(10, ' ');
+      // Magic bytes
+      const magic = '`\n';
+
+      // Create header (60 bytes total)
+      const header = Buffer.from(filename + timestamp + owner + group + mode + size + magic);
+      chunks.push(header);
+      chunks.push(file.data);
+
+      // Pad to even length (ar format requirement)
+      if (file.data.length % 2 !== 0) {
+        chunks.push(Buffer.from('\n'));
+      }
     }
 
-    const defaultPath = 'C:\\Program Files\\National Instruments\\NI Package Manager\\nipkg.exe';
-    if (fs.existsSync(defaultPath)) {
-      return defaultPath;
-    }
+    const archive = Buffer.concat(chunks);
+    await fs.writeFile(outputPath, archive);
+  }
 
-    // Try to find in PATH
-    try {
-      const result = execSync('where nipkg', { encoding: 'utf8' }).trim();
-      return result.split('\\n')[0];
-    } catch {
-      throw new Error('nipkg executable not found. Please install NI Package Manager or specify the path in config.');
-    }
+  /**
+   * Create a tar.gz archive from a directory
+   */
+  private async createTarGz(sourceDir: string, outputPath: string): Promise<Buffer> {
+    const tempFile = outputPath + '.tmp';
+
+    await tar.create(
+      {
+        gzip: true,
+        file: tempFile,
+        cwd: path.dirname(sourceDir),
+        portable: true,
+      },
+      [path.basename(sourceDir)]
+    );
+
+    const data = await fs.readFile(tempFile);
+    await fs.remove(tempFile);
+    return data;
   }
 
   /**
@@ -91,12 +153,12 @@ export class AngularNipkgBuilder {
     }
 
     console.log(chalk.blue('🔨 Building Angular application...'));
-    
+
     try {
-      const buildCmd = this.options.configuration 
+      const buildCmd = this.options.configuration
         ? `ng build --configuration=${this.options.configuration}`
         : 'ng build';
-      
+
       execSync(buildCmd, { stdio: this.options.verbose ? 'inherit' : 'pipe' });
       console.log(chalk.green('✅ Angular build completed successfully'));
     } catch (error) {
@@ -146,8 +208,8 @@ export class AngularNipkgBuilder {
    */
   private generateControlFile(): string {
     const depends = this.config.depends ? this.config.depends.join(', ') : '';
-    
-    return `Architecture: ${this.config.architecture || 'windows_x64'}
+
+    return `Architecture: ${this.config.architecture || 'all'}
 ${depends ? `Depends: ${depends}` : '# Depends:'}
 Description: ${this.config.description}
 ${this.config.displayName ? `DisplayName: ${this.config.displayName}` : '# DisplayName:'}
@@ -155,7 +217,7 @@ Maintainer: ${this.config.maintainer}
 Package: ${this.config.name}
 Plugin: file
 ${this.config.userVisible ? `UserVisible: ${this.config.userVisible}` : '# UserVisible:'}
-Version: ${this.config.version}
+Version: ${this.getVersion()}
 `;
   }
 
@@ -171,7 +233,7 @@ Version: ${this.config.version}
         'Check your angular.json file for the outputPath value.'
       );
     }
-    
+
     const buildDir = this.config.buildDir;
     const applicationFilesDir = path.join(nipkgDir, 'file-package', 'data', 'ApplicationFiles_64');
 
@@ -188,35 +250,57 @@ Version: ${this.config.version}
   }
 
   /**
-   * Package the application using nipkg
+   * Package the application into .nipkg format
    */
   private async packageApplication(nipkgDir: string): Promise<void> {
-    const nipkgPath = this.findNipkgPath();
     const filePackageDir = path.join(nipkgDir, 'file-package');
+    const controlDir = path.join(filePackageDir, 'control');
+    const dataDir = path.join(filePackageDir, 'data');
 
-      // Clean up existing packages
-      if (!this.options.skipCleanup) {
-        const existingPackages = (await fs.readdir(nipkgDir))
-          .filter((file: string) => file.endsWith('.nipkg'));      for (const pkg of existingPackages) {
+    // Clean up existing packages
+    if (!this.options.skipCleanup) {
+      const existingPackages = (await fs.readdir(nipkgDir))
+        .filter((file: string) => file.endsWith('.nipkg'));
+      for (const pkg of existingPackages) {
         await fs.remove(path.join(nipkgDir, pkg));
         console.log(chalk.yellow(`🗑️  Removed existing package: ${pkg}`));
       }
     }
 
     console.log(chalk.blue('📦 Packaging application...'));
-    
+
     try {
-      const cmd = `"${nipkgPath}" pack "${filePackageDir}" "${nipkgDir}"`;
-      execSync(cmd, { stdio: this.options.verbose ? 'inherit' : 'pipe' });
-      
-      // Find the created package
-      const packages = (await fs.readdir(nipkgDir))
-        .filter((file: string) => file.endsWith('.nipkg'));
-      
-      if (packages.length > 0) {
-        console.log(chalk.green(`🎉 Successfully created package: ${packages[0]}`));
-        console.log(chalk.cyan(`📍 Package location: ${path.join(nipkgDir, packages[0])}`));
+      // Create control.tar.gz
+      if (this.options.verbose) {
+        console.log(chalk.gray('  Creating control.tar.gz...'));
       }
+      const controlTarGz = await this.createTarGz(controlDir, path.join(nipkgDir, 'control.tar.gz'));
+
+      // Create data.tar.gz
+      if (this.options.verbose) {
+        console.log(chalk.gray('  Creating data.tar.gz...'));
+      }
+      const dataTarGz = await this.createTarGz(dataDir, path.join(nipkgDir, 'data.tar.gz'));
+
+      // Read debian-binary file
+      const debianBinary = await fs.readFile(path.join(filePackageDir, 'debian-binary'));
+
+      // Create the .nipkg file as an ar archive
+      const packageName = `${this.config.name}_${this.getVersion()}_${this.config.architecture || 'all'}.nipkg`;
+      const packagePath = path.join(nipkgDir, packageName);
+
+      if (this.options.verbose) {
+        console.log(chalk.gray('  Creating ar archive...'));
+      }
+
+      await this.createArArchive(packagePath, [
+        { name: 'debian-binary', data: debianBinary },
+        { name: 'control.tar.gz', data: controlTarGz },
+        { name: 'data.tar.gz', data: dataTarGz }
+      ]);
+
+      console.log(chalk.green(`🎉 Successfully created package: ${packageName}`));
+      console.log(chalk.cyan(`📍 Package location: ${packagePath}`));
     } catch (error) {
       throw new Error(`Packaging failed: ${error}`);
     }
@@ -251,7 +335,7 @@ Version: ${this.config.version}
       await this.packageApplication(nipkgDir);
 
       console.log(chalk.green.bold('🎯 Nipkg build completed successfully!'));
-      
+
     } catch (error) {
       console.error(chalk.red.bold('❌ Build failed:'), (error as Error).message);
       process.exit(1);
