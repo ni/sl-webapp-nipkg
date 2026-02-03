@@ -74,7 +74,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: [build, test, lint]
-    if: secrets.GITHUBPAGESDEPLOYTOKEN != '' && secrets.NUGET_TOKEN != '' && startsWith(github.ref, 'refs/heads/main')
+    if: ${{ secrets.GITHUBPAGESDEPLOYTOKEN != '' && secrets.NUGET_TOKEN != '' && startsWith(github.ref, 'refs/heads/main') }}
     steps:
       - uses: actions/checkout@v6
 
