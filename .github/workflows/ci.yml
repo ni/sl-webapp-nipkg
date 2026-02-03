@@ -25,37 +25,73 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      
+
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-      - run: npm ci
-        timeout-minutes: 10
 
-      # print a log of outdated npm dependencies
-      # only informational so swallow error codes
+      - run: npm ci
+
+      # informational only
       - run: npm outdated || exit 0
 
-      # Build
       - run: npm run build
-      
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - run: npm ci
       - run: npm test
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
           files: ./coverage/lcov.info
 
-      # Lint
+  lint:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - run: npm ci
       - run: npm run lint
 
-      # Check Changelog
+  publish:
+    runs-on: ubuntu-latest
+    needs: [build, test, lint]
+    if: env.HAS_GITHUBPAGESDEPLOYTOKEN == 'true' && env.HAS_NUGET_TOKEN == 'true' && startsWith(github.ref, 'refs/heads/main')
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Check Changelog (only for ni org)
       - if: github.repository_owner == 'ni'
         run: npm run check
 
+      # Validate no changes to tracked files
       - name: Validate no changes to tracked files
         run: |
           echo print files with changes:
@@ -67,7 +103,6 @@ jobs:
 
       # Release
       - name: Publish packages
-        if: env.HAS_GITHUBPAGESDEPLOYTOKEN == 'true' && env.HAS_NUGET_TOKEN == 'true' && startsWith(github.ref, 'refs/heads/main')
         env:
           NUGET_SECRET_TOKEN: ${{ secrets.NUGET_TOKEN }}
         run: |
