@@ -26,7 +26,7 @@ cd my-angular-project
 npm install --save-dev file:../path/to/angular-nipkg-builder
 
 # Or install globally (already done)
-# npm install -g angular-nipkg-builder
+npm install -g @ni/angular-nipkg-builder
 ```
 
 ### 2. Initialize Configuration
