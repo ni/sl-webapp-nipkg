@@ -1,0 +1,27 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+*.cjs
+*.js
+*.mjs
+
+# Coverage
+coverage
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Config files
+eslint.config.mjs
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+.DS_Store
