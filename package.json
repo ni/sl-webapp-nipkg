@@ -1,5 +1,5 @@
 {
-  "name": "angular-nipkg-builder",
+  "name": "@ni/angular-nipkg-builder",
   "version": "2.1.0",
   "description": "Build tool for packaging Angular applications into .nipkg format",
   "type": "module",
@@ -22,12 +22,14 @@
     "national-instruments",
     "packaging"
   ],
-  "author": "Erik Hoglid <erik.hoglid@emerson.com>",
-  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ni/ni-angular-nipkg-builder.git"
+    "url": "git+https://github.com/ni/ni-angular-nipkg-builder.git"
   },
+  "author": {
+    "name": "National Instruments"
+  },
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/ni/ni-angular-nipkg-builder/issues"
   },
