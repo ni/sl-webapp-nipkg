@@ -22,8 +22,16 @@
     "national-instruments",
     "packaging"
   ],
-  "author": "Your Name",
+  "author": "Erik Hoglid <erik.hoglid@emerson.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ni/ni-angular-nipkg-builder.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ni/ni-angular-nipkg-builder/issues"
+  },
+  "homepage": "https://github.com/ni/ni-angular-nipkg-builder#readme",
   "dependencies": {
     "chalk": "^5.6.2",
     "commander": "^14.0.2",

@@ -1,8 +1,8 @@
 # Angular NIPKG Builder
 
 [![npm version](https://badge.fury.io/js/angular-nipkg-builder.svg)](https://badge.fury.io/js/angular-nipkg-builder)
-[![Tests](https://github.com/your-repo/angular-nipkg-builder/workflows/Tests/badge.svg)](https://github.com/your-repo/angular-nipkg-builder/actions)
-[![Coverage Status](https://coveralls.io/repos/github/your-repo/angular-nipkg-builder/badge.svg?branch=main)](https://coveralls.io/github/your-repo/angular-nipkg-builder?branch=main)
+[![Tests](https://github.com/ni/ni-angular-nipkg-builder/workflows/Tests/badge.svg)](https://github.com/ni/ni-angular-nipkg-builder/actions)
+[![Coverage Status](https://coveralls.io/repos/github/ni/ni-angular-nipkg-builder/badge.svg?branch=main)](https://coveralls.io/github/ni/ni-angular-nipkg-builder?branch=main)
 
 A Node.js tool for packaging Angular applications into `.nipkg` format for National Instruments Package Manager.
 
@@ -288,7 +288,7 @@ your-angular-project/
 ### Building from Source
 
 ```bash
-git clone https://github.com/your-repo/angular-nipkg-builder.git
+git clone https://github.com/ni/ni-angular-nipkg-builder.git
 cd angular-nipkg-builder
 npm install
 npm run build
@@ -350,13 +350,13 @@ ng-nipkg --help
 
 ## License
 
-MIT © [Your Name]
+MIT © National Instruments
 
 ## Support
 
-- 📚 [Documentation](https://github.com/your-repo/angular-nipkg-builder/wiki)
-- 🐛 [Report Issues](https://github.com/your-repo/angular-nipkg-builder/issues)
-- 💬 [Discussions](https://github.com/your-repo/angular-nipkg-builder/discussions)
+- 📚 [Documentation](https://github.com/ni/ni-angular-nipkg-builder/wiki)
+- 🐛 [Report Issues](https://github.com/ni/ni-angular-nipkg-builder/issues)
+- 💬 [Discussions](https://github.com/ni/ni-angular-nipkg-builder/discussions)
 
 ---
 
