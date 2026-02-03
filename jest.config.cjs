@@ -9,6 +9,12 @@ module.exports = {
   transform: {
     '^.+\\.ts$': 'ts-jest'
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(chalk|ansi-styles|#ansi-styles)/)'
+  ],
+  moduleNameMapper: {
+    '^(\\.\\.?\\/.+)\\.js$': '$1'
+  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',

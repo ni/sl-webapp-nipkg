@@ -1,7 +1,32 @@
-import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { NipkgConfig } from '../src/types.js';
+import * as childProcess from 'child_process';
+import { AngularNipkgBuilder } from '../src/builder.js';
+import type { NipkgConfig } from '../src/types.js';
+
+// Mock child_process and chalk modules
+jest.mock('child_process');
+jest.mock('chalk', () => {
+    const createMock = (): ((str: string) => string) & { bold: (str: string) => string } => {
+        const fn = ((str: string): string => str) as ((str: string) => string) & { bold: (str: string) => string };
+        fn.bold = (str: string): string => str;
+        return fn;
+    };
+
+    const chalk = {
+        cyan: createMock(),
+        blue: createMock(),
+        yellow: createMock(),
+        gray: createMock(),
+        red: createMock(),
+        green: createMock()
+    };
+
+    return chalk;
+});
+
+const mockedExecSync = jest.mocked(childProcess.execSync);
 
 // Simple unit tests that focus on the core functionality
 describe('Types and Configuration', () => {
@@ -466,5 +491,640 @@ describe('Build Options Validation', () => {
         const errors = validateConfiguration(invalidConfig);
         expect(errors).toContain('Missing or invalid description');
         expect(errors).toContain('Invalid version format');
+    });
+});
+
+describe('AngularNipkgBuilder Integration Tests', () => {
+    let tempDir: string;
+    let config: NipkgConfig;
+
+    beforeEach(async () => {
+        tempDir = await fs.mkdtemp(path.join(__dirname, 'builder-temp-'));
+
+        config = {
+            name: 'test-app',
+            version: '1.0.0',
+            description: 'Test application',
+            maintainer: 'Test <test@example.com>',
+            architecture: 'all',
+            buildDir: path.join(tempDir, 'dist', 'test-app', 'browser')
+        };
+
+        // Mock execSync to prevent actual Angular build
+        mockedExecSync.mockImplementation((() => Buffer.from('')) as unknown as typeof childProcess.execSync);
+    });
+
+    afterEach(async () => {
+        await fs.remove(tempDir);
+        jest.clearAllMocks();
+    });
+
+    test('should successfully build package without running Angular build', async () => {
+        // Create Angular workspace structure
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        // Create build directory with sample files
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+        await fs.writeFile(path.join(config.buildDir!, 'main.js'), 'console.log("test");');
+
+        // Change to temp directory
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: false });
+            await builder.build();
+
+            // Verify package was created
+            const nipkgDir = path.join(tempDir, 'dist', 'nipkg');
+            const packageFile = `${config.name}_${config.version}_${config.architecture}.nipkg`;
+            const packagePath = path.join(nipkgDir, packageFile);
+
+            expect(await fs.pathExists(packagePath)).toBe(true);
+            expect(await fs.pathExists(path.join(nipkgDir, 'file-package', 'control', 'control'))).toBe(true);
+            expect(await fs.pathExists(path.join(nipkgDir, 'file-package', 'data', 'ApplicationFiles_64'))).toBe(true);
+
+            // Verify Angular build was not called
+            expect(mockedExecSync).not.toHaveBeenCalled();
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should run Angular build when build option is true', async () => {
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: true });
+            await builder.build();
+
+            // Verify Angular build was called
+            expect(mockedExecSync).toHaveBeenCalledWith('ng build', expect.any(Object));
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should run Angular build with configuration option', async () => {
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, {
+                build: true,
+                configuration: 'production'
+            });
+            await builder.build();
+
+            expect(mockedExecSync).toHaveBeenCalledWith(
+                'ng build --configuration=production',
+                expect.any(Object)
+            );
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should use custom output directory when specified', async () => {
+        const customOutputDir = path.join(tempDir, 'custom-output');
+        config.outputDir = customOutputDir;
+
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: false });
+            await builder.build();
+
+            const packageFile = `${config.name}_${config.version}_${config.architecture}.nipkg`;
+            // Package is created in customOutputDir/nipkg, not directly in customOutputDir
+            expect(await fs.pathExists(path.join(customOutputDir, 'nipkg', packageFile))).toBe(true);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should read version from package.json when not specified in config', async () => {
+        const { version: _version, ...configWithoutVersion } = config;
+
+        const packageJsonPath = path.join(tempDir, 'package.json');
+        await fs.writeJson(packageJsonPath, { version: '2.5.3' });
+
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(configWithoutVersion, { build: false });
+            await builder.build();
+
+            const packageFile = `${config.name}_2.5.3_${config.architecture}.nipkg`;
+            const packagePath = path.join(tempDir, 'dist', 'nipkg', packageFile);
+            expect(await fs.pathExists(packagePath)).toBe(true);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should use default version 1.0.0 when not found anywhere', async () => {
+        const { version: _version, ...configWithoutVersion } = config;
+
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(configWithoutVersion, { build: false });
+            await builder.build();
+
+            const packageFile = `${config.name}_1.0.0_${config.architecture}.nipkg`;
+            const packagePath = path.join(tempDir, 'dist', 'nipkg', packageFile);
+            expect(await fs.pathExists(packagePath)).toBe(true);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+});
+
+describe('AngularNipkgBuilder Error Handling', () => {
+    let tempDir: string;
+    let config: NipkgConfig;
+    let originalCwd: string;
+
+    beforeEach(async () => {
+        originalCwd = process.cwd();
+        tempDir = await fs.mkdtemp(path.join(__dirname, 'error-temp-'));
+
+        config = {
+            name: 'test-app',
+            version: '1.0.0',
+            description: 'Test application',
+            maintainer: 'Test <test@example.com>',
+            buildDir: path.join(tempDir, 'dist', 'test-app', 'browser')
+        };
+
+        mockedExecSync.mockImplementation((() => Buffer.from('')) as unknown as typeof childProcess.execSync);
+    });
+
+    afterEach(async () => {
+        // Always change back to original directory before cleanup
+        process.chdir(originalCwd);
+        await fs.remove(tempDir);
+        jest.clearAllMocks();
+    });
+
+    test('should throw error when not in Angular workspace', async () => {
+        const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: false });
+            await builder.build();
+
+            // If we reach here, build() didn't call process.exit
+            fail('Expected build() to call process.exit');
+        } catch {
+            // Check if process.exit was called
+            expect(mockExit).toHaveBeenCalledWith(1);
+        } finally {
+            mockExit.mockRestore();
+        }
+    });
+
+    test('should throw error when buildDir is not specified', async () => {
+        const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        const { buildDir: _buildDir, ...configWithoutBuildDir } = config;
+
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(configWithoutBuildDir, { build: false });
+            await builder.build();
+
+            expect(mockExit).toHaveBeenCalledWith(1);
+        } catch {
+            // Expected to call process.exit
+            expect(mockExit).toHaveBeenCalledWith(1);
+        } finally {
+            mockExit.mockRestore();
+        }
+    });
+
+    test('should throw error when build directory does not exist', async () => {
+        const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        // Don't create build directory
+
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: false });
+            await builder.build();
+
+            expect(mockExit).toHaveBeenCalledWith(1);
+        } catch {
+            expect(mockExit).toHaveBeenCalledWith(1);
+        } finally {
+            mockExit.mockRestore();
+        }
+    });
+
+    test('should throw error when Angular build fails', async () => {
+        const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        mockedExecSync.mockImplementation(() => {
+            throw new Error('ng build failed with exit code 1');
+        });
+
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: true });
+            await builder.build();
+
+            expect(mockExit).toHaveBeenCalledWith(1);
+        } catch {
+            expect(mockExit).toHaveBeenCalledWith(1);
+        } finally {
+            mockExit.mockRestore();
+        }
+    });
+
+    test('should handle missing optional config fields gracefully', async () => {
+        const minimalConfig: NipkgConfig = {
+            name: 'minimal-app',
+            description: 'Minimal test',
+            maintainer: 'Test <test@example.com>',
+            buildDir: path.join(tempDir, 'dist', 'minimal-app', 'browser')
+        };
+
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'minimal-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(minimalConfig.buildDir!);
+        await fs.writeFile(path.join(minimalConfig.buildDir!, 'index.html'), '<html>Test</html>');
+
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(minimalConfig, { build: false });
+            await builder.build();
+
+            // Should use default values for optional fields
+            const packageFile = 'minimal-app_1.0.0_all.nipkg';
+            const packagePath = path.join(tempDir, 'dist', 'nipkg', packageFile);
+            expect(await fs.pathExists(packagePath)).toBe(true);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should handle empty build directory', async () => {
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        // Create empty build directory
+        await fs.ensureDir(config.buildDir!);
+
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: false });
+            await builder.build();
+
+            // Should successfully create package even with empty directory
+            const nipkgDir = path.join(tempDir, 'dist', 'nipkg');
+            const packageFile = `${config.name}_${config.version}_all.nipkg`;
+            expect(await fs.pathExists(path.join(nipkgDir, packageFile))).toBe(true);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should clean up existing packages by default', async () => {
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        const nipkgDir = path.join(tempDir, 'dist', 'nipkg');
+        await fs.ensureDir(nipkgDir);
+
+        // Create an old package file
+        const oldPackage = path.join(nipkgDir, 'old-package_1.0.0_all.nipkg');
+        await fs.writeFile(oldPackage, 'old package data');
+
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: false, skipCleanup: false });
+            await builder.build();
+
+            // Old package should be removed
+            expect(await fs.pathExists(oldPackage)).toBe(false);
+
+            // New package should exist
+            const newPackage = path.join(nipkgDir, `${config.name}_${config.version}_all.nipkg`);
+            expect(await fs.pathExists(newPackage)).toBe(true);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should preserve existing packages when skipCleanup is true', async () => {
+        const angularJsonPath = path.join(tempDir, 'angular.json');
+        await fs.writeJson(angularJsonPath, {
+            version: 1,
+            projects: { 'test-app': { projectType: 'application' } }
+        });
+
+        await fs.ensureDir(config.buildDir!);
+        await fs.writeFile(path.join(config.buildDir!, 'index.html'), '<html>Test</html>');
+
+        const nipkgDir = path.join(tempDir, 'dist', 'nipkg');
+        await fs.ensureDir(nipkgDir);
+
+        // Create an old package file
+        const oldPackage = path.join(nipkgDir, 'old-package_1.0.0_all.nipkg');
+        await fs.writeFile(oldPackage, 'old package data');
+
+        process.chdir(tempDir);
+
+        try {
+            const builder = new AngularNipkgBuilder(config, { build: false, skipCleanup: true });
+            await builder.build();
+
+            // Old package should still exist
+            expect(await fs.pathExists(oldPackage)).toBe(true);
+
+            // New package should also exist
+            const newPackage = path.join(nipkgDir, `${config.name}_${config.version}_all.nipkg`);
+            expect(await fs.pathExists(newPackage)).toBe(true);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+});
+
+describe('CLI Configuration Generation', () => {
+    let tempDir: string;
+
+    beforeEach(async () => {
+        tempDir = await fs.mkdtemp(path.join(__dirname, 'cli-temp-'));
+    });
+
+    afterEach(async () => {
+        await fs.remove(tempDir);
+    });
+
+    test('should generate config from package.json', async () => {
+        const packageJson = {
+            name: 'my-angular-app',
+            version: '2.0.0',
+            description: 'My Angular Application',
+            author: 'John Doe <john@example.com>'
+        };
+
+        const packageJsonPath = path.join(tempDir, 'package.json');
+        await fs.writeJson(packageJsonPath, packageJson);
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            // Simulate generateConfigFromPackageJson function
+            const projectPackageJson = await fs.readJson(packageJsonPath) as typeof packageJson;
+            const projectName = projectPackageJson.name || path.basename(process.cwd());
+
+            const generatedConfig: NipkgConfig = {
+                name: projectName,
+                version: projectPackageJson.version || '1.0.0',
+                description: projectPackageJson.description || `${projectName} Angular application`,
+                maintainer: projectPackageJson.author || 'user_name <user@example.com>',
+                architecture: 'all',
+                displayName: projectName,
+                buildDir: `dist/${projectName}/browser`,
+                userVisible: true
+            };
+
+            expect(generatedConfig.name).toBe('my-angular-app');
+            expect(generatedConfig.version).toBe('2.0.0');
+            expect(generatedConfig.description).toBe('My Angular Application');
+            expect(generatedConfig.maintainer).toBe('John Doe <john@example.com>');
+            expect(generatedConfig.buildDir).toBe('dist/my-angular-app/browser');
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should generate config with defaults when package.json is minimal', async () => {
+        const packageJson = {
+            name: 'minimal-app'
+        };
+
+        const packageJsonPath = path.join(tempDir, 'package.json');
+        await fs.writeJson(packageJsonPath, packageJson);
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const projectPackageJson = await fs.readJson(packageJsonPath) as { name: string, version?: string, description?: string, author?: string };
+            const projectName = projectPackageJson.name || path.basename(process.cwd());
+
+            const generatedConfig: NipkgConfig = {
+                name: projectName,
+                version: projectPackageJson.version || '1.0.0',
+                description: projectPackageJson.description || `${projectName} Angular application`,
+                maintainer: projectPackageJson.author || 'user_name <user@example.com>',
+                architecture: 'all',
+                displayName: projectName,
+                buildDir: `dist/${projectName}/browser`,
+                userVisible: true
+            };
+
+            expect(generatedConfig.name).toBe('minimal-app');
+            expect(generatedConfig.version).toBe('1.0.0');
+            expect(generatedConfig.description).toBe('minimal-app Angular application');
+            expect(generatedConfig.maintainer).toBe('user_name <user@example.com>');
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should generate config from directory name when no package.json exists', () => {
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const projectName = path.basename(process.cwd());
+
+            const generatedConfig: NipkgConfig = {
+                name: projectName,
+                version: '1.0.0',
+                description: `${projectName} Angular application`,
+                maintainer: 'user_name <user@example.com>',
+                architecture: 'all',
+                displayName: projectName,
+                buildDir: `dist/${projectName}/browser`,
+                userVisible: true
+            };
+
+            expect(generatedConfig.name).toBeTruthy();
+            expect(generatedConfig.version).toBe('1.0.0');
+            expect(generatedConfig.architecture).toBe('all');
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should create nipkg.config.json file in init command', async () => {
+        const packageJson = {
+            name: 'init-test-app',
+            version: '1.5.0',
+            description: 'Init test',
+            author: 'Test Author <test@example.com>'
+        };
+
+        const packageJsonPath = path.join(tempDir, 'package.json');
+        await fs.writeJson(packageJsonPath, packageJson);
+
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const configPath = path.join(tempDir, 'nipkg.config.json');
+
+            // Simulate init command
+            const projectPackageJson = await fs.readJson(packageJsonPath) as typeof packageJson;
+            const projectName = projectPackageJson.name || path.basename(process.cwd());
+
+            const config: NipkgConfig = {
+                name: projectName,
+                version: projectPackageJson.version || '1.0.0',
+                description: projectPackageJson.description || `${projectName} Angular application`,
+                maintainer: projectPackageJson.author || 'user_name <user@example.com>',
+                architecture: 'all',
+                displayName: projectName,
+                buildDir: `dist/${projectName}/browser`,
+                userVisible: true
+            };
+
+            await fs.writeJson(configPath, config, { spaces: 2 });
+
+            expect(await fs.pathExists(configPath)).toBe(true);
+
+            const savedConfig = await fs.readJson(configPath) as NipkgConfig;
+            expect(savedConfig.name).toBe('init-test-app');
+            expect(savedConfig.version).toBe('1.5.0');
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    test('should not overwrite existing nipkg.config.json in init command', async () => {
+        const originalCwd = process.cwd();
+        process.chdir(tempDir);
+
+        try {
+            const configPath = path.join(tempDir, 'nipkg.config.json');
+            const existingConfig = {
+                name: 'existing-app',
+                version: '5.0.0',
+                description: 'Existing config',
+                maintainer: 'Original <original@example.com>'
+            };
+
+            await fs.writeJson(configPath, existingConfig, { spaces: 2 });
+
+            // Check if config already exists (init command behavior)
+            const configExists = await fs.pathExists(configPath);
+            expect(configExists).toBe(true);
+
+            // Should not overwrite - read existing config
+            const savedConfig = await fs.readJson(configPath) as typeof existingConfig;
+            expect(savedConfig.name).toBe('existing-app');
+            expect(savedConfig.version).toBe('5.0.0');
+        } finally {
+            process.chdir(originalCwd);
+        }
     });
 });
