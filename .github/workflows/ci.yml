@@ -15,6 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  GITHUB_SERVICE_USER: "EHoglid-NI"
+  GITHUB_SERVICE_EMAIL: "ehoglid-ni@users.noreply.github.com"
   HAS_GITHUBPAGESDEPLOYTOKEN: ${{secrets.GITHUBPAGESDEPLOYTOKEN != ''}}
   HAS_NUGET_TOKEN: ${{secrets.NUGET_TOKEN != ''}}
 
@@ -47,20 +49,6 @@ jobs:
         with:
           files: ./coverage/lcov.info
 
-      # Pack
-      - run: npm run pack
-      - uses: actions/upload-artifact@v5
-        with:
-          name: packages
-          path: |
-            packages/**/*.tgz
-            packages/**/*.nupkg
-            angular-workspace/**/*.tgz
-          if-no-files-found: error
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: 'packages/site/dist'
-
       # Lint
       - run: npm run lint
 
@@ -86,18 +74,3 @@ jobs:
           git config --global user.name "${{ env.GITHUB_SERVICE_USER }}"
           git config --global user.email "${{ env.GITHUB_SERVICE_EMAIL }}"
           npm run invoke-publish
-
-  pages:
-    needs: build
-    if: github.repository_owner == 'ni' && startsWith(github.ref, 'refs/heads/main')
-    runs-on: ubuntu-24.04
-    permissions:
-      pages: write # to deploy to Pages
-      id-token: write # to verify the deployment originates from an appropriate source
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
