@@ -3,7 +3,7 @@
 /**
  * @type {import('beachball').BeachballConfig}
  */
-export default {
+module.exports = {
     // Branch settings
     branch: 'main',
 
