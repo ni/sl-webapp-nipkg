@@ -307,7 +307,7 @@ your-webapp-project/
 │   ├── assets/
 │   └── ...
 ├── dist/nipkg/                      # NIPKG packaging
-│   ├── your-app_1.0.0.nipkg        # Final package
+│   ├── your-app_1.0.0_all.nipkg    # Final package
 │   └── temp-source/                # Temporary (auto-cleaned)
 ├── nipkg.config.json                # Package configuration  
 └── package.json                     # NPM scripts
