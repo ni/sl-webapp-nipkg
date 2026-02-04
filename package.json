@@ -1,5 +1,5 @@
 {
-  "name": "@ni/angular-nipkg-builder",
+  "name": "@ni/sl-webapp-nipkg",
   "version": "2.1.0",
   "description": "Build tool for packaging Angular applications into .nipkg format",
   "type": "module",
@@ -30,16 +30,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ni/angular-nipkg-builder.git"
+    "url": "git+https://github.com/ni/sl-webapp-nipkg.git"
   },
   "author": {
     "name": "National Instruments"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ni/angular-nipkg-builder/issues"
+    "url": "https://github.com/ni/sl-webapp-nipkg/issues"
   },
-  "homepage": "https://github.com/ni/angular-nipkg-builder#readme",
+  "homepage": "https://github.com/ni/sl-webapp-nipkg#readme",
   "dependencies": {
     "chalk": "^5.6.2",
     "commander": "^14.0.2",

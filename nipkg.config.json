@@ -1,9 +1,9 @@
 {
-  "name": "angular-nipkg-builder",
+  "name": "sl-webapp-nipkg",
   "version": "1.0.0",
   "description": "Build tool for packaging Angular applications into .nipkg format",
   "maintainer": "Your Name",
   "architecture": "all",
-  "displayName": "angular-nipkg-builder",
+  "displayName": "sl-webapp-nipkg",
   "userVisible": true
 }
