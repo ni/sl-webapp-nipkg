@@ -1,12 +1,12 @@
 {
-  "name": "my-angular-app",
+  "name": "my-webapp",
   "version": "1.0.0",
-  "description": "My Angular application packaged for National Instruments",
+  "description": "My SystemLink WebApp",
   "maintainer": "John Doe <john.doe@company.com>",
   "architecture": "all",
-  "displayName": "My Angular App",
-  "projectName": "my-angular-app",
-  "buildDir": "dist/my-angular-app/browser",
+  "displayName": "My WebApp",
+  "buildDir": "dist",
+  "buildCommand": "npm run build",
   "userVisible": true,
-  "depends": ["ni-labview-runtime-2023-q1"]
+  "depends": ["ni-systemlink-server >= 2023.1"]
 }

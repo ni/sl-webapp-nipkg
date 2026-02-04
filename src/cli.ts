@@ -6,7 +6,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
 import { fileURLToPath } from 'url';
-import { AngularNipkgBuilder } from './builder.js';
+import { SystemLinkNipkgBuilder } from './builder.js';
 import { NipkgConfig, BuildOptions } from './types.js';
 
 const filename = fileURLToPath(import.meta.url);
@@ -18,15 +18,15 @@ const packageJson = await fs.readJson(path.join(dirname, '../package.json')) as 
 const program = new Command();
 
 program
-    .name('ng-nipkg')
-    .description('Build tool for packaging Angular applications into .nipkg format')
+    .name('sl-nipkg')
+    .description('Build tool for packaging Node.js applications into SystemLink WebApp .nipkg format')
     .version(packageJson.version);
 
 program
     .command('build')
-    .description('Build and package Angular application as .nipkg')
-    .option('-c, --configuration <config>', 'Angular build configuration (e.g., production)')
-    .option('-b, --build', 'Run ng build before packaging', false)
+    .description('Build and package Node.js application as SystemLink WebApp .nipkg')
+    .option('-c, --configuration <config>', 'Build configuration (e.g., production)')
+    .option('-b, --build', 'Run build command before packaging', false)
     .option('-v, --verbose', 'Verbose output', false)
     .option('--skip-cleanup', 'Skip cleanup of existing packages', false)
     .option('--config <path>', 'Path to nipkg config file', 'nipkg.config.json')
@@ -53,7 +53,7 @@ program
                 skipCleanup: options.skipCleanup
             };
 
-            const builder = new AngularNipkgBuilder(config, buildOptions);
+            const builder = new SystemLinkNipkgBuilder(config, buildOptions);
             await builder.build();
         } catch (error) {
             console.error(chalk.red.bold('❌ Error:'), (error as Error).message);
@@ -95,13 +95,11 @@ async function generateConfigFromPackageJson(): Promise<NipkgConfig> {
     const projectName = (projectPackageJson.name as string) || path.basename(process.cwd());
 
     return {
-        name: projectName,
-        version: (projectPackageJson.version as string) || '1.0.0',
-        description: (projectPackageJson.description as string) || `${projectName} Angular application`,
         maintainer: (projectPackageJson.author as string) || 'user_name <user@example.com>',
         architecture: 'all',
         displayName: projectName,
-        buildDir: `dist/${projectName}/browser`,
+        buildDir: 'dist',
+        buildCommand: 'npm run build',
         userVisible: true
     };
 }

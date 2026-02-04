@@ -1,10 +1,11 @@
 {
   "name": "@ni/sl-webapp-nipkg",
-  "version": "2.1.0",
-  "description": "Build tool for packaging Angular applications into .nipkg format",
+  "version": "3.0.0",
+  "description": "Build tool for packaging Node.js applications into SystemLink WebApp .nipkg format",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
+    "sl-nipkg": "dist/cli.js",
     "ng-nipkg": "dist/cli.js"
   },
   "scripts": {
@@ -23,10 +24,12 @@
     "prepublishOnly": "npm run build && npm run test:ci"
   },
   "keywords": [
-    "angular",
+    "systemlink",
     "nipkg",
     "national-instruments",
-    "packaging"
+    "packaging",
+    "webapp",
+    "nodejs"
   ],
   "repository": {
     "type": "git",
@@ -43,8 +46,8 @@
   "dependencies": {
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
-    "fs-extra": "^11.3.3",
-    "tar": "^7.5.7"
+    "deboa": "^1.2.0",
+    "fs-extra": "^11.3.3"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",

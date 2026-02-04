@@ -4,80 +4,83 @@
 [![Tests](https://github.com/ni/sl-webapp-nipkg/workflows/Tests/badge.svg)](https://github.com/ni/sl-webapp-nipkg/actions)
 [![Coverage Status](https://coveralls.io/repos/github/ni/sl-webapp-nipkg/badge.svg?branch=main)](https://coveralls.io/github/ni/sl-webapp-nipkg?branch=main)
 
-A Node.js tool for packaging Angular applications into `.nipkg` format for National Instruments Package Manager.
+A Node.js tool for packaging Node.js applications into SystemLink WebApp `.nipkg` format for National Instruments Package Manager.
 
 ## Features
 
-- 🚀 **Easy Integration**: Works seamlessly with Angular CLI projects
-- 📦 **Automated Packaging**: Builds and packages your Angular app in one command  
+- 🚀 **Easy Integration**: Works seamlessly with any Node.js project
+- 📦 **Automated Packaging**: Builds and packages your app in one command  
 - ⚙️ **Configurable**: Flexible configuration through JSON files
 - 🎯 **TypeScript Support**: Written in TypeScript with full type definitions
 - 🌈 **Beautiful CLI**: Colorful, informative command-line interface
 - ✅ **Well Tested**: Comprehensive test suite with 17 passing tests
 - 🔧 **CI/CD Ready**: Easy integration with build pipelines
-- 🆓 **No External Dependencies**: Creates .nipkg packages without requiring NI Package Manager
+- 🌍 **Cross-Platform**: Works on Windows, macOS, and Linux without external dependencies
+- 🔌 **Framework Agnostic**: Works with React, Angular, Vue, or any Node.js application
+
+## Prerequisites
+
+- Node.js 16 or higher
 
 ## Installation
 
 ### Global Installation (Recommended)
 
 ```bash
-npm install -g sl-webapp-nipkg
+npm install -g @ni/sl-webapp-nipkg
 ```
 
 ### Project-specific Installation
 
 ```bash
-# As a dev dependency in your Angular project
-npm install --save-dev sl-webapp-nipkg
+# As a dev dependency in your project
+npm install --save-dev @ni/sl-webapp-nipkg
 ```
 
 ## Quick Start
 
-1. **Navigate to your Angular project**:
+1. **Navigate to your Node.js project**:
 
    ```bash
-   cd my-angular-project
+   cd my-webapp-project
    ```
 
 2. **Initialize configuration**:
 
    ```bash
-   ng-nipkg init
+   sl-nipkg init
    ```
 
 3. **Edit the generated `nipkg.config.json`**:
 
    ```json
    {
-     "name": "my-angular-app",
-     "version": "1.0.0", 
-     "description": "My Angular application",
      "maintainer": "John Doe <john.doe@company.com>",
-     "displayName": "My Angular App",
-     "buildDir": "dist/my-app/browser",
+     "displayName": "My WebApp",
+     "buildDir": "dist",
+     "buildCommand": "npm run build",
      "userVisible": true
    }
    ```
 
-   **Note:** The `buildDir` should match the `outputPath` from your `angular.json` (plus `/browser` for Angular 19+).
+   **Note:** The `name`, `version`, and `description` are auto-detected from your `package.json` if not specified. The `buildDir` should point to your application's build output directory (e.g., `dist`, `build`, `out`).
 
 4. **Build and package**:
 
    ```bash
-   ng-nipkg build --build --configuration production
+   sl-nipkg build --build
    ```
 
 ## CLI Commands
 
-### `ng-nipkg build`
+### `sl-nipkg build`
 
-Build and package your Angular application.
+Build and package your Node.js application.
 
 #### Options
 
-- `-b, --build` - Run `ng build` before packaging
-- `-c, --configuration <config>` - Angular build configuration (e.g., 'production')
+- `-b, --build` - Run your build command before packaging
+- `-c, --configuration <config>` - Build configuration (e.g., 'production')
 - `-v, --verbose` - Enable verbose output
 - `--skip-cleanup` - Skip cleanup of existing packages
 - `--config <path>` - Custom config file path (default: 'nipkg.config.json')
@@ -86,16 +89,16 @@ Build and package your Angular application.
 
 ```bash
 # Build with production configuration
-ng-nipkg build --build --configuration production
+sl-nipkg build --build --configuration production
 
 # Use existing build output
-ng-nipkg build
+sl-nipkg build
 
 # Verbose output with custom config  
-ng-nipkg build --build --verbose --config my-nipkg.config.json
+sl-nipkg build --build --verbose --config my-nipkg.config.json
 ```
 
-### `ng-nipkg init`
+### `sl-nipkg init`
 
 Initialize a `nipkg.config.json` file in the current directory.
 
@@ -105,14 +108,14 @@ Initialize a `nipkg.config.json` file in the current directory.
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `name` | string | ✅ | Package name |
-| `version` | string | ✅ | Package version (semver format) |
-| `description` | string | ✅ | Package description |
+| `name` | string | ❌ | Package name (auto-detected from package.json if not provided) |
+| `version` | string | ❌ | Package version (auto-detected from package.json, defaults to 1.0.0) |
+| `description` | string | ❌ | Package description (auto-detected from package.json, defaults to empty) |
 | `maintainer` | string | ✅ | Maintainer information |
 | `architecture` | string | ❌ | Target architecture (default: 'all') |
 | `displayName` | string | ❌ | Display name for the package |
-| `projectName` | string | ❌ | Angular project name (auto-detected) |
-| `buildDir` | string | ❌ | Custom build output directory |
+| `buildDir` | string | ✅ | Build output directory (e.g., 'dist', 'build') |
+| `buildCommand` | string | ❌ | Custom build command (default: 'npm run build') |
 | `outputDir` | string | ❌ | Custom nipkg output directory |
 | `depends` | string[] | ❌ | Package dependencies |
 | `userVisible` | boolean | ❌ | Whether package is user visible |
@@ -121,36 +124,76 @@ Initialize a `nipkg.config.json` file in the current directory.
 
 ```json
 {
-  "name": "my-angular-app",
+  "name": "my-webapp",
   "version": "1.2.3",
-  "description": "A powerful Angular application for National Instruments", 
+  "description": "A SystemLink WebApp for National Instruments", 
   "maintainer": "John Doe <john.doe@company.com>",
   "architecture": "all",
-  "displayName": "My Angular Application",
-  "projectName": "my-angular-app",
+  "displayName": "My WebApp",
+  "buildDir": "dist",
+  "buildCommand": "npm run build",
   "userVisible": true,
   "depends": [
-    "ni-labview-runtime-2023-q1",
-    "ni-visa-runtime >= 23.0"
+    "ni-systemlink-server >= 2023.1"
   ],
-  "buildDir": "dist/my-angular-app/browser",
   "outputDir": "packages"
 }
 ```
 
-## Integration with Angular Projects
+## Framework Examples
+
+### React
+
+```json
+{
+  "maintainer": "Your Name <your.email@company.com>",
+  "buildDir": "build",
+  "buildCommand": "npm run build"
+}
+```
+
+### Vue
+
+```json
+{
+  "maintainer": "Your Name <your.email@company.com>",
+  "buildDir": "dist",
+  "buildCommand": "npm run build"
+}
+```
+
+### Angular
+
+```json
+{
+  "maintainer": "Your Name <your.email@company.com>",
+  "buildDir": "dist/my-app/browser",
+  "buildCommand": "ng build --configuration production"
+}
+```
+
+### Next.js
+
+```json
+{
+  "maintainer": "Your Name <your.email@company.com>",
+  "buildDir": "out",
+  "buildCommand": "npm run build && npm run export"
+}
+```
+
+## Integration with Node.js Projects
 
 ### Add to package.json Scripts
 
 ```json
 {
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve", 
-    "build": "ng build",
-    "build:prod": "ng build --configuration production",
-    "build:nipkg": "ng-nipkg build --build --configuration production",
-    "package:nipkg": "ng-nipkg build"
+    "start": "npm run dev",
+    "dev": "vite",
+    "build": "vite build",
+    "build:nipkg": "sl-nipkg build --build",
+    "package:nipkg": "sl-nipkg build"
   }
 }
 ```
@@ -168,23 +211,23 @@ npm run package:nipkg
 ## Programmatic Usage
 
 ```typescript
-import { AngularNipkgBuilder, NipkgConfig, BuildOptions } from 'sl-webapp-nipkg';
+import { SystemLinkNipkgBuilder, NipkgConfig, BuildOptions } from '@ni/sl-webapp-nipkg';
 
 const config: NipkgConfig = {
   name: 'my-app',
   version: '1.0.0',
-  description: 'My Angular application',
+  description: 'My SystemLink WebApp',
   maintainer: 'John Doe <john@example.com>',
+  buildDir: 'dist',
   userVisible: true
 };
 
 const options: BuildOptions = {
   build: true,
-  configuration: 'production',
   verbose: true
 };
 
-const builder = new AngularNipkgBuilder(config, options);
+const builder = new SystemLinkNipkgBuilder(config, options);
 await builder.build();
 ```
 
@@ -258,21 +301,14 @@ steps:
 After packaging, your project will have this structure:
 
 ```
-your-angular-project/
-├── dist/
-│   ├── your-app/                    # Angular build output
-│   │   └── browser/
-│   └── nipkg/                       # NIPKG packaging
-│       ├── your-app_1.0.0_windows_x64.nipkg  # Final package
-│       └── file-package/
-│           ├── debian-binary
-│           ├── control/
-│           │   └── control          # Package metadata
-│           └── data/
-│               └── ApplicationFiles_64/  # Your Angular app files
-│                   ├── index.html
-│                   ├── main.js
-│                   └── assets/
+your-webapp-project/
+├── dist/                            # Your build output
+│   ├── index.html
+│   ├── assets/
+│   └── ...
+├── dist/nipkg/                      # NIPKG packaging
+│   ├── your-app_1.0.0_all.nipkg    # Final package
+│   └── temp-source/                # Temporary (auto-cleaned)
 ├── nipkg.config.json                # Package configuration  
 └── package.json                     # NPM scripts
 ```
@@ -280,7 +316,6 @@ your-angular-project/
 ## Requirements
 
 - Node.js 16+
-- Angular CLI
 - National Instruments Package Manager (nipkg)
 
 ## Development
@@ -313,29 +348,30 @@ npm run test:watch
 # Link globally for testing
 npm link
 
-# Use in any Angular project
-cd /path/to/angular/project
-ng-nipkg --help
+# Use in any Node.js project
+cd /path/to/your/project
+sl-nipkg --help
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### "Angular build directory not found"
+#### "Build directory not found"
 
 - Run with `--build` flag to build before packaging
-- Check that your Angular project builds successfully with `ng build`
+- Check that your build command runs successfully: `npm run build`
+- Verify `buildDir` in nipkg.config.json points to the correct directory
 
-#### "This is not an Angular workspace"
+#### "This is not a Node.js project"
 
-- Ensure you're running the command in an Angular project directory
-- Check that `angular.json` exists in the current directory
+- Ensure you're running the command in a Node.js project directory
+- Check that `package.json` exists in the current directory
 
 #### Package dependencies missing
 
 - Add required NI runtime dependencies to `depends` array in config
-- Example: `"depends": ["ni-labview-runtime-2023-q1"]`
+- Example: `"depends": ["ni-systemlink-server >= 2023.1"]`
 
 ## Contributing
 

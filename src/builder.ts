@@ -3,10 +3,15 @@ import fs from 'fs-extra';
 import path from 'path';
 import { execSync } from 'child_process';
 import chalk from 'chalk';
-import * as tar from 'tar';
+import { createRequire } from 'node:module';
+import type { Deboa as DeboaType } from 'deboa';
 import { NipkgConfig, BuildOptions } from './types.js';
 
-export class AngularNipkgBuilder {
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/naming-convention
+const { Deboa } = require('deboa') as { Deboa: typeof DeboaType };
+
+export class SystemLinkNipkgBuilder {
     private readonly config: NipkgConfig;
     private readonly options: BuildOptions;
     private readonly projectRoot: string;
@@ -23,24 +28,21 @@ export class AngularNipkgBuilder {
     public async build(): Promise<void> {
         try {
             // Validate environment
-            if (!this.isAngularWorkspace()) {
-                throw new Error('This is not an Angular workspace. Please run this command in an Angular project directory.');
+            if (!this.isNodeProject()) {
+                throw new Error('This is not a Node.js project. Please run this command in a Node.js project directory.');
             }
 
             console.log(chalk.cyan('🚀 Starting nipkg build process...'));
 
-            // Run Angular build if requested
-            this.runAngularBuild();
+            // Run custom build command if requested
+            this.runProjectBuild();
 
             // Set up output directory
             const outputDir = this.config.outputDir || path.join(this.projectRoot, 'dist');
             await fs.ensureDir(outputDir);
 
-            // Create package structure
-            const nipkgDir = await this.createPackageStructure(outputDir);
-
-            // Copy build files
-            await this.copyBuildFiles(nipkgDir);
+            const nipkgDir = path.join(outputDir, 'nipkg');
+            await fs.ensureDir(nipkgDir);
 
             // Package the application
             await this.packageApplication(nipkgDir);
@@ -53,10 +55,57 @@ export class AngularNipkgBuilder {
     }
 
     /**
-   * Check if current directory is an Angular workspace
+   * Check if current directory is a Node.js project
    */
-    private isAngularWorkspace(): boolean {
-        return fs.existsSync(path.join(this.projectRoot, 'angular.json'));
+    private isNodeProject(): boolean {
+        return fs.existsSync(path.join(this.projectRoot, 'package.json'));
+    }
+
+    /**
+   * Get the package name from config or package.json
+   */
+    private getName(): string {
+        // If name is explicitly set in config, use it
+        if (this.config.name) {
+            return this.config.name;
+        }
+
+        // Otherwise, try to read from package.json
+        try {
+            const packageJson = fs.readJsonSync(path.join(this.projectRoot, 'package.json')) as { name?: string };
+            if (packageJson.name !== undefined && packageJson.name !== '') {
+                console.log(chalk.cyan(`📦 Using name "${packageJson.name}" from package.json`));
+                return packageJson.name;
+            }
+        } catch (_error) {
+            // Fall through
+        }
+
+        throw new Error('Package name not found in nipkg.config.json or package.json');
+    }
+
+    /**
+   * Get the package description from config or package.json
+   */
+    private getDescription(): string {
+        // If description is explicitly set in config, use it
+        if (this.config.description) {
+            return this.config.description;
+        }
+
+        // Otherwise, try to read from package.json
+        try {
+            const packageJson = fs.readJsonSync(path.join(this.projectRoot, 'package.json')) as { description?: string };
+            if (packageJson.description !== undefined && packageJson.description !== '') {
+                console.log(chalk.cyan('📦 Using description from package.json'));
+                return packageJson.description;
+            }
+        } catch (_error) {
+            // Fall through
+        }
+
+        // Default to empty string if not found anywhere
+        return '';
     }
 
     /**
@@ -85,179 +134,77 @@ export class AngularNipkgBuilder {
     }
 
     /**
-   * Create an ar archive (Unix archiver format used by Debian packages)
+   * Run project build command
    */
-    private async createArArchive(outputPath: string, files: { name: string, data: Buffer }[]): Promise<void> {
-        const AR_MAGIC = '!<arch>\n';
-        const chunks: Buffer[] = [Buffer.from(AR_MAGIC)];
-
-        for (const file of files) {
-            // Pad filename to 16 bytes
-            const filename = file.name.padEnd(16, ' ');
-            // Current timestamp
-            const timestamp = Math.floor(Date.now() / 1000).toString().padEnd(12, ' ');
-            // Owner/Group ID (use 0 for root)
-            const owner = '0'.padEnd(6, ' ');
-            const group = '0'.padEnd(6, ' ');
-            // File mode (octal, typically 100644 for regular files)
-            const mode = '100644'.padEnd(8, ' ');
-            // File size
-            const size = file.data.length.toString().padEnd(10, ' ');
-            // Magic bytes
-            const magic = '`\n';
-
-            // Create header (60 bytes total)
-            const header = Buffer.from(filename + timestamp + owner + group + mode + size + magic);
-            chunks.push(header);
-            chunks.push(file.data);
-
-            // Pad to even length (ar format requirement)
-            if (file.data.length % 2 !== 0) {
-                chunks.push(Buffer.from('\n'));
-            }
-        }
-
-        const archive = Buffer.concat(chunks);
-        await fs.writeFile(outputPath, archive);
-    }
-
-    /**
-   * Create a tar.gz archive from a directory
-   */
-    private async createTarGz(sourceDir: string, outputPath: string): Promise<Buffer> {
-        const tempFile = `${outputPath}.tmp`;
-
-        await tar.create(
-            {
-                gzip: true,
-                file: tempFile,
-                cwd: path.dirname(sourceDir),
-                portable: true,
-            },
-            [path.basename(sourceDir)]
-        );
-
-        const data = await fs.readFile(tempFile);
-        await fs.remove(tempFile);
-        return data;
-    }
-
-    /**
-   * Run Angular build
-   */
-    private runAngularBuild(): void {
+    private runProjectBuild(): void {
         if (!this.options.build) {
             return;
         }
 
-        console.log(chalk.blue('🔨 Building Angular application...'));
+        console.log(chalk.blue('🔨 Building application...'));
 
         try {
-            const buildCmd = this.options.configuration
-                ? `ng build --configuration=${this.options.configuration}`
-                : 'ng build';
+            // Use npm run build by default, or custom command from config
+            const buildCmd = typeof this.config.buildCommand === 'string' && this.config.buildCommand !== ''
+                ? this.config.buildCommand
+                : 'npm run build';
 
             execSync(buildCmd, { stdio: this.options.verbose ? 'inherit' : 'pipe' });
-            console.log(chalk.green('✅ Angular build completed successfully'));
+            console.log(chalk.green('✅ Build completed successfully'));
         } catch (error) {
-            throw new Error(`Angular build failed: ${(error as Error).message}`);
+            throw new Error(`Build failed: ${(error as Error).message}`);
         }
     }
 
     /**
-   * Create nipkg package structure
+   * Prepare source directory with ApplicationFiles_64 structure
    */
-    private async createPackageStructure(outputDir: string): Promise<string> {
-        const nipkgDir = path.join(outputDir, 'nipkg');
-        const filePackageDir = path.join(nipkgDir, 'file-package');
-        const controlDir = path.join(filePackageDir, 'control');
-        const dataDir = path.join(filePackageDir, 'data');
-        const applicationFilesDir = path.join(dataDir, 'ApplicationFiles_64');
-
-        // Clean up existing file-package directory if it exists
-        if (!this.options.skipCleanup && await fs.pathExists(filePackageDir)) {
-            console.log(chalk.yellow('🗑️  Cleaning up existing file-package directory...'));
-            await fs.remove(filePackageDir);
-        }
-
-        // Create directory structure
-        await fs.ensureDir(applicationFilesDir);
-        await fs.ensureDir(controlDir);
-
-        // Create debian-binary file
-        await fs.writeFile(
-            path.join(filePackageDir, 'debian-binary'),
-            '2.0\\n'
-        );
-
-        // Create control file
-        const controlContent = this.generateControlFile();
-        await fs.writeFile(
-            path.join(controlDir, 'control'),
-            controlContent
-        );
-
-        console.log(chalk.green(`📁 Package structure created at ${nipkgDir}`));
-        return nipkgDir;
-    }
-
-    /**
-   * Generate control file content
-   */
-    private generateControlFile(): string {
-        const depends = this.config.depends ? this.config.depends.join(', ') : '';
-
-        return `Architecture: ${this.config.architecture || 'all'}
-                ${depends ? `Depends: ${depends}` : '# Depends:'}
-                Description: ${this.config.description}
-                ${this.config.displayName ? `DisplayName: ${this.config.displayName}` : '# DisplayName:'}
-                Maintainer: ${this.config.maintainer}
-                Package: ${this.config.name}
-                Plugin: file
-                ${this.config.userVisible ? `UserVisible: ${this.config.userVisible}` : '# UserVisible:'}
-                Version: ${this.getVersion()}`;
-    }
-
-    /**
-   * Copy Angular build files to package structure
-   */
-    private async copyBuildFiles(nipkgDir: string): Promise<void> {
+    private async prepareSourceDirectory(nipkgDir: string): Promise<string> {
         if (!this.config.buildDir) {
             throw new Error(
                 'buildDir is required in nipkg.config.json.\n'
-                + 'Please add the build output path from your angular.json, for example:\n'
-                + '  "buildDir": "dist/my-app/browser"\n\n'
-                + 'Check your angular.json file for the outputPath value.'
+                + 'Please add the build output directory path, for example:\n'
+                + '  "buildDir": "dist"\n'
+                + '  or "buildDir": "build"\n\n'
+                + 'This should point to your application\'s build output directory.'
             );
         }
 
         const buildDir = this.config.buildDir;
-        const applicationFilesDir = path.join(nipkgDir, 'file-package', 'data', 'ApplicationFiles_64');
 
         if (!fs.existsSync(buildDir)) {
             throw new Error(
-                `Angular build directory not found: ${buildDir}\n`
-                + 'Run \'ng build\' first or use --build flag.'
+                `Build directory not found: ${buildDir}\n`
+                + 'Run your build command first or use --build flag.'
             );
         }
 
+        // Create temporary source directory with the required structure
+        const sourceDir = path.join(nipkgDir, 'temp-source');
+        const applicationFilesDir = path.join(sourceDir, 'ApplicationFiles_64');
+
+        // Clean up if exists
+        if (await fs.pathExists(sourceDir)) {
+            await fs.remove(sourceDir);
+        }
+
+        await fs.ensureDir(applicationFilesDir);
+
         console.log(chalk.blue('📋 Copying build files...'));
         await fs.copy(buildDir, applicationFilesDir, { overwrite: true });
-        console.log(chalk.green(`✅ Build files copied to ${applicationFilesDir}`));
+        console.log(chalk.green('✅ Build files copied'));
+
+        return sourceDir;
     }
 
     /**
    * Package the application into .nipkg format
    */
     private async packageApplication(nipkgDir: string): Promise<void> {
-        const filePackageDir = path.join(nipkgDir, 'file-package');
-        const controlDir = path.join(filePackageDir, 'control');
-        const dataDir = path.join(filePackageDir, 'data');
-
         // Clean up existing packages
         if (!this.options.skipCleanup) {
             const existingPackages = (await fs.readdir(nipkgDir))
-                .filter((file: string) => file.endsWith('.nipkg'));
+                .filter((file: string) => file.endsWith('.nipkg') || file.endsWith('.deb'));
             await Promise.all(existingPackages.map(async pkg => {
                 await fs.remove(path.join(nipkgDir, pkg));
                 console.log(chalk.yellow(`🗑️  Removed existing package: ${pkg}`));
@@ -267,37 +214,48 @@ export class AngularNipkgBuilder {
         console.log(chalk.blue('📦 Packaging application...'));
 
         try {
-            // Create control.tar.gz
+            // Prepare source directory with ApplicationFiles_64 structure
+            const sourceDir = await this.prepareSourceDirectory(nipkgDir);
+
+            const packageName = `${this.getName()}_${this.getVersion()}_${this.config.architecture || 'all'}`;
+            const debPath = path.join(nipkgDir, `${packageName}.deb`);
+            const nipkgPath = path.join(nipkgDir, `${packageName}.nipkg`);
+
+            // Build control file options
+            const depends = this.config.depends ? this.config.depends.join(', ') : undefined;
+
+            const controlFileOptions = {
+                maintainer: this.config.maintainer,
+                packageName: this.getName(),
+                shortDescription: this.getDescription(),
+                version: this.getVersion(),
+                architecture: this.config.architecture || 'all',
+                ...(depends && { depends }),
+                ...(this.config.displayName && { displayName: this.config.displayName }),
+                ...(this.config.userVisible && { userVisible: String(this.config.userVisible) }),
+            };
+
+            // Use Deboa to create the .deb file
             if (this.options.verbose) {
-                console.log(chalk.gray('  Creating control.tar.gz...'));
-            }
-            const controlTarGz = await this.createTarGz(controlDir, path.join(nipkgDir, 'control.tar.gz'));
-
-            // Create data.tar.gz
-            if (this.options.verbose) {
-                console.log(chalk.gray('  Creating data.tar.gz...'));
-            }
-            const dataTarGz = await this.createTarGz(dataDir, path.join(nipkgDir, 'data.tar.gz'));
-
-            // Read debian-binary file
-            const debianBinary = await fs.readFile(path.join(filePackageDir, 'debian-binary'));
-
-            // Create the .nipkg file as an ar archive
-            const packageName = `${this.config.name}_${this.getVersion()}_${this.config.architecture || 'all'}.nipkg`;
-            const packagePath = path.join(nipkgDir, packageName);
-
-            if (this.options.verbose) {
-                console.log(chalk.gray('  Creating ar archive...'));
+                console.log(chalk.gray('  Creating .deb package...'));
             }
 
-            await this.createArArchive(packagePath, [
-                { name: 'debian-binary', data: debianBinary },
-                { name: 'control.tar.gz', data: controlTarGz },
-                { name: 'data.tar.gz', data: dataTarGz }
-            ]);
+            const deboa = new Deboa({
+                controlFileOptions,
+                sourceDir,
+                targetDir: nipkgDir,
+            });
 
-            console.log(chalk.green(`🎉 Successfully created package: ${packageName}`));
-            console.log(chalk.cyan(`📍 Package location: ${packagePath}`));
+            await deboa.package();
+
+            // Clean up temp source directory
+            await fs.remove(sourceDir);
+
+            // Rename .deb to .nipkg
+            await fs.rename(debPath, nipkgPath);
+
+            console.log(chalk.green(`🎉 Successfully created package: ${packageName}.nipkg`));
+            console.log(chalk.cyan(`📍 Package location: ${nipkgPath}`));
         } catch (error) {
             throw new Error(`Packaging failed: ${(error as Error).message}`);
         }

@@ -1,20 +1,20 @@
 export interface NipkgConfig {
-    /** Package name */
-    name: string;
+    /** Package name (auto-detected from package.json if not provided) */
+    name?: string;
     /** Package version (auto-detected from package.json if not provided) */
     version?: string;
-    /** Package description */
-    description: string;
+    /** Package description (auto-detected from package.json if not provided) */
+    description?: string;
     /** Maintainer information */
     maintainer: string;
     /** Package architecture (default: all) */
     architecture?: string;
     /** Display name for the package */
     displayName?: string;
-    /** Angular project name (auto-detected if not provided) */
-    projectName?: string;
-    /** Angular build output directory (e.g., 'dist/my-app/browser' or 'dist/my-app') - REQUIRED for Angular 19+ */
+    /** Build output directory (e.g., 'dist' or 'build') - REQUIRED */
     buildDir?: string;
+    /** Custom build command (default: 'npm run build') */
+    buildCommand?: string;
     /** Custom output directory for nipkg files (default: dist/nipkg) */
     outputDir?: string;
     /** Additional dependencies */
@@ -24,7 +24,7 @@ export interface NipkgConfig {
 }
 
 export interface BuildOptions {
-    /** Run ng build before packaging */
+    /** Run build command before packaging */
     build?: boolean;
     /** Build configuration (e.g., 'production') */
     configuration?: string;

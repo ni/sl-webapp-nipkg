@@ -1,9 +1,10 @@
 {
   "name": "sl-webapp-nipkg",
-  "version": "1.0.0",
-  "description": "Build tool for packaging Angular applications into .nipkg format",
-  "maintainer": "Your Name",
+  "version": "2.1.0",
+  "description": "Build tool for packaging Node.js applications into SystemLink WebApp .nipkg format",
+  "maintainer": "National Instruments",
   "architecture": "all",
-  "displayName": "sl-webapp-nipkg",
-  "userVisible": true
+  "displayName": "SL WebApp NIPKG Builder",
+  "buildDir": "dist",
+  "userVisible": false
 }

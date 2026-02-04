@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-02-04
+
+### Changed
+
+- **BREAKING**: Converted from Angular-specific tool to generic Node.js application packager
+- **BREAKING**: Renamed `AngularNipkgBuilder` to `SystemLinkNipkgBuilder`
+- **BREAKING**: Project detection now checks for `package.json` instead of `angular.json`
+- **BREAKING**: Removed `projectName` field from config (auto-detected from `package.json`)
+- **BREAKING**: CLI command defaults changed from `ng build` to `npm run build`
+- Package name, version, and description now auto-detected from `package.json` when not specified in config
+- `buildCommand` field added to config for custom build commands (default: `npm run build`)
+- Updated all documentation to reflect generic Node.js usage with framework examples (Angular, React, Vue, Next.js)
+
+### Added
+
+- Auto-detection of package name from `package.json`
+- Auto-detection of package description from `package.json` (defaults to empty string if not found)
+- Support for any Node.js framework (React, Vue, Next.js, Express, etc.)
+- Configurable build commands via `buildCommand` in config
+- Generic framework examples in documentation
+
+### Removed
+
+- **BREAKING**: Angular Schematics integration
+- **BREAKING**: Angular CLI-specific configuration and validation
+- Dependency on `tar-fs` (now using deboa's built-in packaging)
+- Angular-specific terminology and examples from documentation
+
 ## [2.1.0] - 2026-01-30
 
 ### Added
