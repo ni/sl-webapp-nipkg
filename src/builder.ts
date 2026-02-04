@@ -217,7 +217,7 @@ export class SystemLinkNipkgBuilder {
             // Prepare source directory with ApplicationFiles_64 structure
             const sourceDir = await this.prepareSourceDirectory(nipkgDir);
 
-            const packageName = `${this.getName()}_${this.getVersion()}_${this.config.architecture || 'all'}`;
+            const packageName = `${this.getName()}_${this.getVersion()}`;
             const debPath = path.join(nipkgDir, `${packageName}.deb`);
             const nipkgPath = path.join(nipkgDir, `${packageName}.nipkg`);
 
