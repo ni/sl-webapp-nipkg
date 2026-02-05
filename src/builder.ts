@@ -218,7 +218,11 @@ export class SystemLinkNipkgBuilder {
             const sourceDir = await this.prepareSourceDirectory(nipkgDir);
 
             const architecture = this.config.architecture || 'all';
-            const packageName = `${this.getName()}_${this.getVersion()}_${architecture}`;
+            // Build package name with optional suffix (CLI option takes precedence over config)
+            const suffix = this.options.buildSuffix || this.config.buildSuffix;
+            const packageName = suffix
+                ? `${this.getName()}_${this.getVersion()}_${suffix}_${architecture}`
+                : `${this.getName()}_${this.getVersion()}_${architecture}`;
             const debPath = path.join(nipkgDir, `${packageName}.deb`);
             const nipkgPath = path.join(nipkgDir, `${packageName}.nipkg`);
 

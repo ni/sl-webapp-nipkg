@@ -83,6 +83,7 @@ Build and package your Node.js application.
 - `-c, --configuration <config>` - Build configuration (e.g., 'production')
 - `-v, --verbose` - Enable verbose output
 - `--skip-cleanup` - Skip cleanup of existing packages
+- `--build-suffix <suffix>` - Add a suffix to the package name (e.g., build ID for CI/CD)
 - `--config <path>` - Custom config file path (default: 'nipkg.config.json')
 
 #### Examples
@@ -93,6 +94,9 @@ sl-nipkg build --build --configuration production
 
 # Use existing build output
 sl-nipkg build
+
+# Build with build ID suffix for CI/CD
+sl-nipkg build --build --build-suffix "${BUILD_ID}"
 
 # Verbose output with custom config  
 sl-nipkg build --build --verbose --config my-nipkg.config.json
@@ -117,6 +121,7 @@ Initialize a `nipkg.config.json` file in the current directory.
 | `buildDir` | string | ✅ | Build output directory (e.g., 'dist', 'build') |
 | `buildCommand` | string | ❌ | Custom build command (default: 'npm run build') |
 | `outputDir` | string | ❌ | Custom nipkg output directory |
+| `buildSuffix` | string | ❌ | Optional suffix for package filename (e.g., build ID for CI/CD) |
 | `depends` | string[] | ❌ | Package dependencies |
 | `userVisible` | boolean | ❌ | Whether package is user visible |
 
@@ -233,6 +238,12 @@ await builder.build();
 
 ## CI/CD Integration
 
+The `--build-suffix` option allows you to create unique package names for PR/branch builds while keeping clean names for production releases.
+
+**Output examples:**
+- PR builds: `my-app_1.0.0_12345_all.nipkg` (includes build ID)
+- Main/production: `my-app_1.0.0_all.nipkg` (standard naming)
+
 ### GitHub Actions
 
 ```yaml
@@ -260,8 +271,13 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Build and Package
-      run: npm run build:nipkg
+    - name: Build and Package (PR)
+      if: github.event_name == 'pull_request'
+      run: sl-nipkg build --build --build-suffix "${{ github.run_number }}"
+    
+    - name: Build and Package (Main)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: sl-nipkg build --build
     
     - name: Upload Package
       uses: actions/upload-artifact@v3
@@ -287,7 +303,14 @@ steps:
 - script: npm ci
   displayName: 'Install dependencies'
 
-- script: npm run build:nipkg  
+- script: |
+    if [ "$(Build.SourceBranch)" = "refs/heads/main" ]; then
+      npm run build
+      sl-nipkg build
+    else
+      npm run build
+      sl-nipkg build --build-suffix "$(Build.BuildId)"
+    fi
   displayName: 'Build and package'
 
 - task: PublishBuildArtifacts@1

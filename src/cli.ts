@@ -29,8 +29,9 @@ program
     .option('-b, --build', 'Run build command before packaging', false)
     .option('-v, --verbose', 'Verbose output', false)
     .option('--skip-cleanup', 'Skip cleanup of existing packages', false)
+    .option('--build-suffix <suffix>', 'Add a suffix to the package name (e.g., build ID)')
     .option('--config <path>', 'Path to nipkg config file', 'nipkg.config.json')
-    .action(async (options: { configuration?: string, build: boolean, verbose: boolean, skipCleanup: boolean, config: string }) => {
+    .action(async (options: { configuration?: string, build: boolean, verbose: boolean, skipCleanup: boolean, buildSuffix?: string, config: string }) => {
         try {
             const configPath = path.resolve(options.config);
 
@@ -50,7 +51,8 @@ program
                 build: options.build,
                 configuration: options.configuration,
                 verbose: options.verbose,
-                skipCleanup: options.skipCleanup
+                skipCleanup: options.skipCleanup,
+                buildSuffix: options.buildSuffix
             };
 
             const builder = new SystemLinkNipkgBuilder(config, buildOptions);

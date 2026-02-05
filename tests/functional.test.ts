@@ -61,7 +61,8 @@ describe('Types and Configuration', () => {
                 buildCommand: 'npm run build',
                 outputDir: 'custom-output',
                 depends: ['dep1', 'dep2'],
-                userVisible: true
+                userVisible: true,
+                buildSuffix: 'build-123'
             };
 
             expect(config).toBeDefined();
@@ -71,6 +72,18 @@ describe('Types and Configuration', () => {
             expect(config.architecture).toBe('all');
             expect(config.depends).toEqual(['dep1', 'dep2']);
             expect(config.userVisible).toBe(true);
+            expect(config.buildSuffix).toBe('build-123');
+        });
+
+        test('should accept configuration with buildSuffix for CI/CD pipelines', () => {
+            const config: NipkgConfig = {
+                maintainer: 'CI User <ci@example.com>',
+                buildDir: 'dist',
+                buildSuffix: '12345'
+            };
+
+            expect(config).toBeDefined();
+            expect(config.buildSuffix).toBe('12345');
         });
     });
 });
@@ -280,18 +293,28 @@ describe('Build Options Validation', () => {
             build: true,
             configuration: 'production',
             verbose: true,
-            skipCleanup: false
+            skipCleanup: false,
+            buildSuffix: 'build-456'
         };
 
         expect(options.build).toBe(true);
         expect(options.configuration).toBe('production');
         expect(options.verbose).toBe(true);
         expect(options.skipCleanup).toBe(false);
+        expect(options.buildSuffix).toBe('build-456');
     });
 
     test('should have default values for optional build options', () => {
         const options = {};
 
         expect(options).toBeDefined();
+    });
+
+    test('should accept buildSuffix for CI/CD build identifiers', () => {
+        const options = {
+            buildSuffix: '789'
+        };
+
+        expect(options.buildSuffix).toBe('789');
     });
 });

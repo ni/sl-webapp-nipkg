@@ -21,6 +21,8 @@ export interface NipkgConfig {
     depends?: string[];
     /** Whether the package is user visible */
     userVisible?: boolean;
+    /** Optional build suffix for the output filename (e.g., build ID) */
+    buildSuffix?: string;
 }
 
 export interface BuildOptions {
@@ -32,4 +34,6 @@ export interface BuildOptions {
     verbose?: boolean;
     /** Skip cleanup of existing packages */
     skipCleanup?: boolean;
+    /** Optional build suffix for the output filename (e.g., build ID) */
+    buildSuffix?: string;
 }

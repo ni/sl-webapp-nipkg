@@ -36,6 +36,7 @@ sl-nipkg init
 ```
 
 This creates `nipkg.config.json`:
+
 ```json
 {
   "maintainer": "Your Name <your.email@company.com>",
@@ -181,8 +182,13 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Build and Package
-      run: npm run build:nipkg
+    - name: Build and Package (PR)
+      if: github.event_name == 'pull_request'
+      run: sl-nipkg build --build --build-suffix "${{ github.run_number }}"
+    
+    - name: Build and Package (Main)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: sl-nipkg build --build
     
     - name: Upload Package
       uses: actions/upload-artifact@v3
@@ -190,6 +196,11 @@ jobs:
         name: nipkg-package
         path: dist/nipkg/*.nipkg
 ```
+
+**Output examples:**
+
+- PR builds: `my-app_1.0.0_12345_all.nipkg` (includes build ID)
+- Main builds: `my-app_1.0.0_all.nipkg` (clean version-only name)
 
 ### Azure DevOps
 
@@ -208,7 +219,12 @@ steps:
 - script: npm ci
   displayName: 'Install dependencies'
 
-- script: npm run build:nipkg
+- script: |
+    if [ "$(Build.SourceBranch)" = "refs/heads/main" ]; then
+      sl-nipkg build --build
+    else
+      sl-nipkg build --build --build-suffix "$(Build.BuildId)"
+    fi
   displayName: 'Build and package'
 
 - task: PublishBuildArtifacts@1
@@ -217,9 +233,28 @@ steps:
     ArtifactName: 'nipkg-package'
 ```
 
+### Using Build Suffix in Config File
+
+Alternatively, you can set the suffix in your config file:
+
+```json
+{
+  "maintainer": "Your Name <your.email@company.com>",
+  "buildDir": "dist",
+  "buildSuffix": "dev"
+}
+```
+
+Then use CI environment variables:
+
+```bash
+# Override config with CLI option (takes precedence)
+sl-nipkg build --build --build-suffix "${CI_BUILD_ID}"
+```
+
 ## 📁 Project Structure After Packaging
 
-```
+```text
 your-webapp-project/
 ├── dist/                            # Your build output
 │   ├── index.html
@@ -236,7 +271,8 @@ your-webapp-project/
 
 ### Common Issues & Solutions
 
-**"Build directory not found"**
+#### "Build directory not found"
+
 ```bash
 # Solution: Build first or use --build flag
 npm run build
@@ -245,7 +281,7 @@ sl-nipkg build
 sl-nipkg build --build
 ```
 
-**"This is not a Node.js project"**
+#### "This is not a Node.js project"
 
 ```bash
 # Solution: Run in Node.js project directory with package.json
@@ -253,7 +289,7 @@ cd path/to/your/project
 sl-nipkg build
 ```
 
-**"buildDir is required"**
+#### "buildDir is required"**
 
 ```bash
 # Solution: Add buildDir to nipkg.config.json
@@ -267,6 +303,7 @@ sl-nipkg build
 ### Publishing Your Tool
 
 1. **Create GitHub Repository**
+
    ```bash
    git init
    git add .
@@ -276,12 +313,14 @@ sl-nipkg build
    ```
 
 2. **Publish to NPM**
+
    ```bash
    npm login
    npm publish
    ```
 
 3. **Team Installation**
+
    ```bash
    npm install -g @ni/sl-webapp-nipkg
    # OR in projects
@@ -304,9 +343,10 @@ sl-nipkg build
 4. **Documentation**: Document package contents and requirements
 5. **CI/CD**: Automate packaging in your build pipeline
 
-## 🎉 Success!
+## 🎉 Success
 
 You now have a **production-ready tool** that:
+
 - ✅ Works with any Node.js framework
 - ✅ Integrates with existing workflows
 - ✅ Supports team collaboration
@@ -314,6 +354,7 @@ You now have a **production-ready tool** that:
 - ✅ Provides excellent developer experience
 
 Your tool is **flexible and modern** because it:
+
 - Works across the entire Node.js ecosystem
 - Requires no external dependencies
 - Works across different environments
