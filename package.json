@@ -1,5 +1,5 @@
 {
-  "name": "@ni/sl-webapp-nipkg",
+  "name": "@ni-kismet/sl-webapp-nipkg",
   "version": "3.0.0",
   "description": "Build tool for packaging Node.js applications into SystemLink WebApp .nipkg format",
   "type": "module",
