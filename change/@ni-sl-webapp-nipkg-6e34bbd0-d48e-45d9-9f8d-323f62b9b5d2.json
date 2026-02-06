@@ -1,7 +1,0 @@
-{
-  "type": "minor",
-  "comment": "Add possibility to add suffix to the file name.",
-  "packageName": "@ni/sl-webapp-nipkg",
-  "email": "erik.hoglid@emerson.com",
-  "dependentChangeType": "patch"
-}

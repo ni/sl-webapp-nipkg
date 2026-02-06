@@ -28,14 +28,14 @@ A flexible tool for packaging web applications into SystemLink WebApp `.nipkg` f
 ### Global Installation (Recommended)
 
 ```bash
-npm install -g @ni/sl-webapp-nipkg
+npm install -g @ni-kismet/sl-webapp-nipkg
 ```
 
 ### Project-specific Installation
 
 ```bash
 # As a dev dependency in your project
-npm install --save-dev @ni/sl-webapp-nipkg
+npm install --save-dev @ni-kismet/sl-webapp-nipkg
 ```
 
 ## Quick Start
@@ -306,7 +306,7 @@ npm run package:nipkg
 ## Programmatic Usage
 
 ```typescript
-import { SystemLinkNipkgBuilder, NipkgConfig, BuildOptions } from '@ni/sl-webapp-nipkg';
+import { SystemLinkNipkgBuilder, NipkgConfig, BuildOptions } from '@ni-kismet/sl-webapp-nipkg';
 
 const config: NipkgConfig = {
   name: 'my-app',

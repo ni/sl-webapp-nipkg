@@ -1,7 +1,0 @@
-{
-  "type": "major",
-  "comment": "BREAKING: Made config files completely optional. Added CLI overrides for all options (--build-dir, --name, --version, --description, --maintainer, --output-dir). Removed requirement for package.json. Now supports non-Node.js web applications (Python, .NET Blazor, static sites). Maintainer field is now optional with smart defaults.",
-  "packageName": "@ni/sl-webapp-nipkg",
-  "email": "unknown@example.com",
-  "dependentChangeType": "major"
-}

@@ -42,10 +42,10 @@ Recommended for Node.js projects:
 cd my-webapp-project
 
 # Install as dev dependency (for Node.js projects)
-npm install --save-dev @ni/sl-webapp-nipkg
+npm install --save-dev @ni-kismet/sl-webapp-nipkg
 
 # Or install globally (for any project type)
-npm install -g @ni/sl-webapp-nipkg
+npm install -g @ni-kismet/sl-webapp-nipkg
 ```
 
 ### 2. Quick Package (No Config Needed)
@@ -411,9 +411,9 @@ sl-webapp-nipkg build --build-dir ./dist --name my-app
 3. **Team Installation**
 
    ```bash
-   npm install -g @ni/sl-webapp-nipkg
+   npm install -g @ni-kismet/sl-webapp-nipkg
    # OR in projects
-   npm install --save-dev @ni/sl-webapp-nipkg
+   npm install --save-dev @ni-kismet/sl-webapp-nipkg
    ```
 
 ### Extending the Tool
