@@ -54,6 +54,7 @@ jobs:
           cache: 'npm'
 
       - run: npm ci
+      - run: npm run build 
 
       # Check Changelog (only for ni org)
       - if: github.repository_owner == 'ni'
