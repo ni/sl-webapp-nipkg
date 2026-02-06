@@ -51,13 +51,6 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          files: ./coverage/lcov.info
-          token: ${{ secrets.CODECOV_TOKEN }}
-
   lint:
     runs-on: ubuntu-latest
     needs: build
