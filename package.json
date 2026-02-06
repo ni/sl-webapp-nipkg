@@ -1,12 +1,11 @@
 {
   "name": "@ni-kismet/sl-webapp-nipkg",
-  "version": "3.0.0",
-  "description": "Build tool for packaging Node.js applications into SystemLink WebApp .nipkg format",
+  "version": "4.0.0",
+  "description": "Build tool for packaging web applications into SystemLink WebApp .nipkg format. Supports Node.js, Python, .NET Blazor, and static sites.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "sl-nipkg": "dist/cli.js",
-    "ng-nipkg": "dist/cli.js"
+    "sl-webapp-nipkg": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",

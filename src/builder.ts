@@ -27,18 +27,13 @@ export class SystemLinkNipkgBuilder {
    */
     public async build(): Promise<void> {
         try {
-            // Validate environment
-            if (!this.isNodeProject()) {
-                throw new Error('This is not a Node.js project. Please run this command in a Node.js project directory.');
-            }
-
             console.log(chalk.cyan('🚀 Starting nipkg build process...'));
 
             // Run custom build command if requested
             this.runProjectBuild();
 
             // Set up output directory
-            const outputDir = this.config.outputDir || path.join(this.projectRoot, 'dist');
+            const outputDir = this.options.outputDir || this.config.outputDir || path.join(this.projectRoot, 'dist');
             await fs.ensureDir(outputDir);
 
             const nipkgDir = path.join(outputDir, 'nipkg');
@@ -55,16 +50,14 @@ export class SystemLinkNipkgBuilder {
     }
 
     /**
-   * Check if current directory is a Node.js project
-   */
-    private isNodeProject(): boolean {
-        return fs.existsSync(path.join(this.projectRoot, 'package.json'));
-    }
-
-    /**
-   * Get the package name from config or package.json
+   * Get the package name from CLI options, config, or package.json
    */
     private getName(): string {
+        // Priority: CLI option > config > package.json > directory name
+        if (this.options.name) {
+            return this.options.name;
+        }
+
         // If name is explicitly set in config, use it
         if (this.config.name) {
             return this.config.name;
@@ -81,13 +74,21 @@ export class SystemLinkNipkgBuilder {
             // Fall through
         }
 
-        throw new Error('Package name not found in nipkg.config.json or package.json');
+        // Default to current directory name
+        const dirName = path.basename(this.projectRoot);
+        console.log(chalk.yellow(`⚠️  No package name found, using directory name: "${dirName}"`));
+        return dirName;
     }
 
     /**
-   * Get the package description from config or package.json
+   * Get the package description from CLI options, config, or package.json
    */
     private getDescription(): string {
+        // Priority: CLI option > config > package.json > empty string
+        if (this.options.description) {
+            return this.options.description;
+        }
+
         // If description is explicitly set in config, use it
         if (this.config.description) {
             return this.config.description;
@@ -109,9 +110,14 @@ export class SystemLinkNipkgBuilder {
     }
 
     /**
-   * Get the package version from config or package.json
+   * Get the package version from CLI options, config, or package.json
    */
     private getVersion(): string {
+        // Priority: CLI option > config > package.json > default
+        if (this.options.version) {
+            return this.options.version;
+        }
+
         // If version is explicitly set in config, use it
         if (this.config.version) {
             return this.config.version;
@@ -131,6 +137,24 @@ export class SystemLinkNipkgBuilder {
         // Default to 1.0.0 if not found anywhere
         console.log(chalk.yellow('⚠️  No version found, defaulting to 1.0.0'));
         return '1.0.0';
+    }
+
+    /**
+   * Get the maintainer from CLI options, config, or use default
+   */
+    private getMaintainer(): string {
+        // Priority: CLI option > config > default
+        if (this.options.maintainer) {
+            return this.options.maintainer;
+        }
+
+        if (this.config.maintainer) {
+            return this.config.maintainer;
+        }
+
+        // Default maintainer if not specified
+        console.log(chalk.yellow('⚠️  No maintainer specified, using default'));
+        return 'Unknown <unknown@example.com>';
     }
 
     /**
@@ -160,17 +184,19 @@ export class SystemLinkNipkgBuilder {
    * Prepare source directory with ApplicationFiles_64 structure
    */
     private async prepareSourceDirectory(nipkgDir: string): Promise<string> {
-        if (!this.config.buildDir) {
+        // Priority: CLI option > config
+        const buildDir = this.options.buildDir || this.config.buildDir;
+
+        if (!buildDir) {
             throw new Error(
-                'buildDir is required in nipkg.config.json.\n'
-                + 'Please add the build output directory path, for example:\n'
+                'buildDir is required.\n'
+                + 'Provide it via CLI: --build-dir <path>\n'
+                + 'Or add it to nipkg.config.json:\n'
                 + '  "buildDir": "dist"\n'
                 + '  or "buildDir": "build"\n\n'
                 + 'This should point to your application\'s build output directory.'
             );
         }
-
-        const buildDir = this.config.buildDir;
 
         if (!fs.existsSync(buildDir)) {
             throw new Error(
@@ -221,7 +247,7 @@ export class SystemLinkNipkgBuilder {
             // Build package name with optional suffix (CLI option takes precedence over config)
             const suffix = this.options.buildSuffix || this.config.buildSuffix;
             const packageName = suffix
-                ? `${this.getName()}_${this.getVersion()}_${suffix}_${architecture}`
+                ? `${this.getName()}_${this.getVersion()}.${suffix}_${architecture}`
                 : `${this.getName()}_${this.getVersion()}_${architecture}`;
             const debPath = path.join(nipkgDir, `${packageName}.deb`);
             const nipkgPath = path.join(nipkgDir, `${packageName}.nipkg`);
@@ -230,7 +256,7 @@ export class SystemLinkNipkgBuilder {
             const depends = this.config.depends ? this.config.depends.join(', ') : undefined;
 
             const controlFileOptions = {
-                maintainer: this.config.maintainer,
+                maintainer: this.getMaintainer(),
                 packageName: this.getName(),
                 shortDescription: this.getDescription(),
                 version: this.getVersion(),
@@ -249,6 +275,7 @@ export class SystemLinkNipkgBuilder {
                 controlFileOptions,
                 sourceDir,
                 targetDir: nipkgDir,
+                targetFileName: `${packageName}`,
             });
 
             await deboa.package();

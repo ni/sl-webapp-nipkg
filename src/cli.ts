@@ -18,33 +18,53 @@ const packageJson = await fs.readJson(path.join(dirname, '../package.json')) as 
 const program = new Command();
 
 program
-    .name('sl-nipkg')
+    .name('sl-webapp-nipkg')
     .description('Build tool for packaging Node.js applications into SystemLink WebApp .nipkg format')
     .version(packageJson.version);
 
 program
     .command('build')
-    .description('Build and package Node.js application as SystemLink WebApp .nipkg')
+    .description('Build and package application as SystemLink WebApp .nipkg')
     .option('-c, --configuration <config>', 'Build configuration (e.g., production)')
     .option('-b, --build', 'Run build command before packaging', false)
     .option('-v, --verbose', 'Verbose output', false)
     .option('--skip-cleanup', 'Skip cleanup of existing packages', false)
     .option('--build-suffix <suffix>', 'Add a suffix to the package name (e.g., build ID)')
     .option('--config <path>', 'Path to nipkg config file', 'nipkg.config.json')
-    .action(async (options: { configuration?: string, build: boolean, verbose: boolean, skipCleanup: boolean, buildSuffix?: string, config: string }) => {
+    .option('--build-dir <path>', 'Build output directory to package')
+    .option('--name <name>', 'Package name')
+    .option('--version <version>', 'Package version')
+    .option('--description <description>', 'Package description')
+    .option('--maintainer <maintainer>', 'Maintainer information')
+    .option('--output-dir <path>', 'Output directory for nipkg files')
+    .action(async (options: {
+        configuration?: string,
+        build: boolean,
+        verbose: boolean,
+        skipCleanup: boolean,
+        buildSuffix?: string,
+        config: string,
+        buildDir?: string,
+        name?: string,
+        version?: string,
+        description?: string,
+        maintainer?: string,
+        outputDir?: string
+    }) => {
         try {
             const configPath = path.resolve(options.config);
 
-            let config: NipkgConfig;
+            let config: NipkgConfig = {};
 
             if (fs.existsSync(configPath)) {
                 config = await fs.readJson(configPath) as NipkgConfig;
                 console.log(chalk.blue(`📋 Using config from: ${configPath}`));
+            } else if (options.config !== 'nipkg.config.json') {
+                // If user specified a custom config path and it doesn't exist, throw error
+                throw new Error(`Config file not found: ${configPath}`);
             } else {
-                // Try to auto-generate config from package.json
-                config = await generateConfigFromPackageJson();
-                console.log(chalk.yellow('⚠️  No nipkg.config.json found, using auto-generated config'));
-                console.log(chalk.cyan('💡 Create a nipkg.config.json file for customization'));
+                // No config file found, will rely on CLI options and defaults
+                console.log(chalk.yellow('⚠️  No nipkg.config.json found, using CLI options and defaults'));
             }
 
             const buildOptions: BuildOptions = {
@@ -52,7 +72,13 @@ program
                 configuration: options.configuration,
                 verbose: options.verbose,
                 skipCleanup: options.skipCleanup,
-                buildSuffix: options.buildSuffix
+                buildSuffix: options.buildSuffix,
+                buildDir: options.buildDir,
+                name: options.name,
+                version: options.version,
+                description: options.description,
+                maintainer: options.maintainer,
+                outputDir: options.outputDir
             };
 
             const builder = new SystemLinkNipkgBuilder(config, buildOptions);
@@ -95,9 +121,10 @@ async function generateConfigFromPackageJson(): Promise<NipkgConfig> {
     }
 
     const projectName = (projectPackageJson.name as string) || path.basename(process.cwd());
+    const maintainer = projectPackageJson.author as string;
 
     return {
-        maintainer: (projectPackageJson.author as string) || 'user_name <user@example.com>',
+        ...(maintainer && { maintainer }),
         architecture: 'all',
         displayName: projectName,
         buildDir: 'dist',

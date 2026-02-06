@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-02-06
+
+### Changed
+
+- **BREAKING**: All configuration files are now completely optional (no `nipkg.config.json` or `package.json` required)
+- **BREAKING**: `maintainer` field is now optional with default value `'Unknown <unknown@example.com>'`
+- **BREAKING**: Removed requirement for Node.js project detection (no longer requires `package.json`)
+- CLI options now override config file values, which override `package.json` values, which override defaults
+- Package name now defaults to current directory name if not found in config or `package.json`
+- Tool now works with any web application framework (Node.js, Python Pyodide, .NET Blazor, static HTML, etc.)
+
+### Added
+
+- New CLI option: `--build-dir <path>` - Specify build output directory directly from command line
+- New CLI option: `--name <name>` - Override package name
+- New CLI option: `--version <version>` - Override package version
+- New CLI option: `--description <description>` - Override package description
+- New CLI option: `--maintainer <maintainer>` - Override maintainer information
+- New CLI option: `--output-dir <path>` - Override output directory for nipkg files
+- Smart defaults for all metadata fields enabling zero-config usage
+- Support for non-Node.js web applications (Python, .NET Blazor, static sites)
+- CLI-first workflow - can now package any web app without any config files
+- Support for deboa's `targetFileName` option to set output filename directly
+
+### Fixed
+
+- Package file is now created with the correct `.nipkg` extension directly instead of requiring rename from `.deb`
+
+### Removed
+
+- **BREAKING**: Removed blocking check for Node.js projects (`isNodeProject()` validation)
+- Config file is no longer auto-generated when missing (optional workflow)
+
 ## [3.0.0] - 2026-02-04
 
 ### Changed

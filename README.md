@@ -4,23 +4,24 @@
 [![Tests](https://github.com/ni/sl-webapp-nipkg/workflows/Tests/badge.svg)](https://github.com/ni/sl-webapp-nipkg/actions)
 [![Coverage Status](https://coveralls.io/repos/github/ni/sl-webapp-nipkg/badge.svg?branch=main)](https://coveralls.io/github/ni/sl-webapp-nipkg?branch=main)
 
-A Node.js tool for packaging Node.js applications into SystemLink WebApp `.nipkg` format for National Instruments Package Manager.
+A flexible tool for packaging web applications into SystemLink WebApp `.nipkg` format for National Instruments Package Manager. Works with any web application framework including Node.js (React, Angular, Vue), Python (Pyodide), .NET (Blazor), and static HTML sites.
 
 ## Features
 
-- 🚀 **Easy Integration**: Works seamlessly with any Node.js project
+- 🚀 **Easy Integration**: Works seamlessly with any web application
 - 📦 **Automated Packaging**: Builds and packages your app in one command  
-- ⚙️ **Configurable**: Flexible configuration through JSON files
+- ⚙️ **Flexible Configuration**: Optional config files - use CLI flags or JSON config
 - 🎯 **TypeScript Support**: Written in TypeScript with full type definitions
 - 🌈 **Beautiful CLI**: Colorful, informative command-line interface
 - ✅ **Well Tested**: Comprehensive test suite with 17 passing tests
 - 🔧 **CI/CD Ready**: Easy integration with build pipelines
 - 🌍 **Cross-Platform**: Works on Windows, macOS, and Linux without external dependencies
-- 🔌 **Framework Agnostic**: Works with React, Angular, Vue, or any Node.js application
+- 🔌 **Framework Agnostic**: Works with React, Angular, Vue, Blazor, Pyodide, static HTML, and more
+- 🎨 **Zero Config**: No config files required - just point to your build directory
 
 ## Prerequisites
 
-- Node.js 16 or higher
+- Node.js 16 or higher (only to run the packaging tool)
 
 ## Installation
 
@@ -39,19 +40,35 @@ npm install --save-dev @ni/sl-webapp-nipkg
 
 ## Quick Start
 
-1. **Navigate to your Node.js project**:
+### Option 1: Minimal Usage (No Config Files)
+
+```bash
+# Package any web application - just point to the build directory
+sl-webapp-nipkg build --build-dir ./dist --name my-app
+
+# With full metadata
+sl-webapp-nipkg build \
+  --build-dir ./dist \
+  --name "My WebApp" \
+  --version "1.0.0" \
+  --maintainer "Your Name <name@example.com>"
+```
+
+### Option 2: With Configuration File (Recommended for Node.js projects)
+
+1. **Navigate to your project**:
 
    ```bash
    cd my-webapp-project
    ```
 
-2. **Initialize configuration**:
+2. **Initialize configuration** (optional):
 
    ```bash
-   sl-nipkg init
+   sl-webapp-nipkg init
    ```
 
-3. **Edit the generated `nipkg.config.json`**:
+3. **Edit the generated `nipkg.config.json`** (all fields optional):
 
    ```json
    {
@@ -63,21 +80,32 @@ npm install --save-dev @ni/sl-webapp-nipkg
    }
    ```
 
-   **Note:** The `name`, `version`, and `description` are auto-detected from your `package.json` if not specified. The `buildDir` should point to your application's build output directory (e.g., `dist`, `build`, `out`).
+   **Note:** The `name`, `version`, and `description` are auto-detected from your `package.json` if present.
 
 4. **Build and package**:
 
    ```bash
-   sl-nipkg build --build
+   sl-webapp-nipkg build --build
    ```
 
 ## CLI Commands
 
-### `sl-nipkg build`
+### `sl-webapp-nipkg build`
 
-Build and package your Node.js application.
+Build and package your web application.
 
 #### Options
+
+**Core Options:**
+
+- `--build-dir <path>` - Build output directory to package (required if not in config)
+- `--name <name>` - Package name (auto-detected from package.json or directory name)
+- `--version <version>` - Package version (auto-detected from package.json or defaults to 1.0.0)
+- `--description <description>` - Package description (optional)
+- `--maintainer <maintainer>` - Maintainer info (defaults to 'Unknown')
+- `--output-dir <path>` - Output directory for nipkg files (default: dist/nipkg)
+
+**Build Options:**
 
 - `-b, --build` - Run your build command before packaging
 - `-c, --configuration <config>` - Build configuration (e.g., 'production')
@@ -86,23 +114,51 @@ Build and package your Node.js application.
 - `--build-suffix <suffix>` - Add a suffix to the package name (e.g., build ID for CI/CD)
 - `--config <path>` - Custom config file path (default: 'nipkg.config.json')
 
+**Note:** CLI options override config file values, which override package.json values.
+
 #### Examples
+
+**Node.js Projects:**
 
 ```bash
 # Build with production configuration
-sl-nipkg build --build --configuration production
+sl-webapp-nipkg build --build --configuration production
 
-# Use existing build output
-sl-nipkg build
+# Use existing build output (with config file)
+sl-webapp-nipkg build
 
 # Build with build ID suffix for CI/CD
-sl-nipkg build --build --build-suffix "${BUILD_ID}"
+sl-webapp-nipkg build --build --build-suffix "${BUILD_ID}"
 
 # Verbose output with custom config  
-sl-nipkg build --build --verbose --config my-nipkg.config.json
+sl-webapp-nipkg build --build --verbose --config my-nipkg.config.json
 ```
 
-### `sl-nipkg init`
+**Non-Node.js Projects (Python, Blazor, Static Sites):**
+
+```bash
+# Python Pyodide webapp
+sl-webapp-nipkg build --build-dir ./public --name my-pyodide-app
+
+# .NET Blazor webapp
+sl-webapp-nipkg build \
+  --build-dir ./bin/Release/net8.0/publish \
+  --name "My Blazor App" \
+  --version "2.0.0"
+
+# Static HTML site
+sl-webapp-nipkg build --build-dir ./dist --name my-static-site --version 1.0.0
+
+# With full metadata
+sl-webapp-nipkg build \
+  --build-dir ./output \
+  --name "My WebApp" \
+  --version "1.5.0" \
+  --description "My awesome webapp" \
+  --maintainer "Team <team@company.com>"
+```
+
+### `sl-webapp-nipkg init`
 
 Initialize a `nipkg.config.json` file in the current directory.
 
@@ -110,17 +166,19 @@ Initialize a `nipkg.config.json` file in the current directory.
 
 ### Configuration File (`nipkg.config.json`)
 
+**All fields are optional.** CLI options override config file values. Config file values override package.json auto-detection.
+
 | Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `name` | string | ❌ | Package name (auto-detected from package.json if not provided) |
+| -------- | ---- | -------- | ----------- |
+| `name` | string | ❌ | Package name (auto-detected from package.json or directory name) |
 | `version` | string | ❌ | Package version (auto-detected from package.json, defaults to 1.0.0) |
 | `description` | string | ❌ | Package description (auto-detected from package.json, defaults to empty) |
-| `maintainer` | string | ✅ | Maintainer information |
+| `maintainer` | string | ❌ | Maintainer information (defaults to 'Unknown') |
 | `architecture` | string | ❌ | Target architecture (default: 'all') |
 | `displayName` | string | ❌ | Display name for the package |
-| `buildDir` | string | ✅ | Build output directory (e.g., 'dist', 'build') |
+| `buildDir` | string | ❌* | Build output directory (e.g., 'dist', 'build') - *Required if not provided via CLI |
 | `buildCommand` | string | ❌ | Custom build command (default: 'npm run build') |
-| `outputDir` | string | ❌ | Custom nipkg output directory |
+| `outputDir` | string | ❌ | Custom nipkg output directory (default: 'dist/nipkg') |
 | `buildSuffix` | string | ❌ | Optional suffix for package filename (e.g., build ID for CI/CD) |
 | `depends` | string[] | ❌ | Package dependencies |
 | `userVisible` | boolean | ❌ | Whether package is user visible |
@@ -147,7 +205,39 @@ Initialize a `nipkg.config.json` file in the current directory.
 
 ## Framework Examples
 
-### React
+### Non-Node.js Projects
+
+**Python Pyodide:**
+
+```bash
+# No config file needed
+sl-webapp-nipkg build \
+  --build-dir ./public \
+  --name my-pyodide-app \
+  --version 1.0.0 \
+  --maintainer "Python Team <team@example.com>"
+```
+
+**.NET Blazor:**
+
+```bash
+# Package Blazor WebAssembly output
+sl-webapp-nipkg build \
+  --build-dir ./bin/Release/net8.0/publish/wwwroot \
+  --name my-blazor-app \
+  --version 2.0.0
+```
+
+**Static HTML:**
+
+```bash
+# Package any static web content
+sl-webapp-nipkg build --build-dir ./dist --name my-static-site
+```
+
+### Node.js Projects
+
+**React:**
 
 ```json
 {
@@ -197,8 +287,8 @@ Initialize a `nipkg.config.json` file in the current directory.
     "start": "npm run dev",
     "dev": "vite",
     "build": "vite build",
-    "build:nipkg": "sl-nipkg build --build",
-    "package:nipkg": "sl-nipkg build"
+    "build:nipkg": "sl-webapp-nipkg build --build",
+    "package:nipkg": "sl-webapp-nipkg build"
   }
 }
 ```
@@ -241,6 +331,7 @@ await builder.build();
 The `--build-suffix` option allows you to create unique package names for PR/branch builds while keeping clean names for production releases.
 
 **Output examples:**
+
 - PR builds: `my-app_1.0.0_12345_all.nipkg` (includes build ID)
 - Main/production: `my-app_1.0.0_all.nipkg` (standard naming)
 
@@ -273,11 +364,11 @@ jobs:
     
     - name: Build and Package (PR)
       if: github.event_name == 'pull_request'
-      run: sl-nipkg build --build --build-suffix "${{ github.run_number }}"
+      run: sl-webapp-nipkg build --build --build-suffix "${{ github.run_number }}"
     
     - name: Build and Package (Main)
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: sl-nipkg build --build
+      run: sl-webapp-nipkg build --build
     
     - name: Upload Package
       uses: actions/upload-artifact@v3
@@ -306,10 +397,10 @@ steps:
 - script: |
     if [ "$(Build.SourceBranch)" = "refs/heads/main" ]; then
       npm run build
-      sl-nipkg build
+      sl-webapp-nipkg build
     else
       npm run build
-      sl-nipkg build --build-suffix "$(Build.BuildId)"
+      sl-webapp-nipkg build --build-suffix "$(Build.BuildId)"
     fi
   displayName: 'Build and package'
 
@@ -323,7 +414,7 @@ steps:
 
 After packaging, your project will have this structure:
 
-```
+```text
 your-webapp-project/
 ├── dist/                            # Your build output
 │   ├── index.html
@@ -373,7 +464,7 @@ npm link
 
 # Use in any Node.js project
 cd /path/to/your/project
-sl-nipkg --help
+sl-webapp-nipkg --help
 ```
 
 ## Troubleshooting
@@ -382,14 +473,15 @@ sl-nipkg --help
 
 #### "Build directory not found"
 
-- Run with `--build` flag to build before packaging
-- Check that your build command runs successfully: `npm run build`
+- Provide build directory via CLI: `--build-dir ./dist`
+- Or run with `--build` flag to build before packaging
+- Check that your build command runs successfully
 - Verify `buildDir` in nipkg.config.json points to the correct directory
 
-#### "This is not a Node.js project"
+#### "buildDir is required"
 
-- Ensure you're running the command in a Node.js project directory
-- Check that `package.json` exists in the current directory
+- Provide via CLI: `sl-webapp-nipkg build --build-dir ./dist`
+- Or add to nipkg.config.json: `"buildDir": "dist"`
 
 #### Package dependencies missing
 

@@ -14,6 +14,7 @@ declare module 'deboa' {
         controlFileOptions: ControlFileOptions;
         sourceDir: string;
         targetDir: string;
+        targetFileName?: string;
     }
 
     export class Deboa {

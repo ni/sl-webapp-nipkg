@@ -5,8 +5,8 @@ export interface NipkgConfig {
     version?: string;
     /** Package description (auto-detected from package.json if not provided) */
     description?: string;
-    /** Maintainer information */
-    maintainer: string;
+    /** Maintainer information (optional, defaults to 'Unknown <unknown@example.com>') */
+    maintainer?: string;
     /** Package architecture (default: all) */
     architecture?: string;
     /** Display name for the package */
@@ -36,4 +36,16 @@ export interface BuildOptions {
     skipCleanup?: boolean;
     /** Optional build suffix for the output filename (e.g., build ID) */
     buildSuffix?: string;
+    /** CLI override: Build directory path */
+    buildDir?: string;
+    /** CLI override: Package name */
+    name?: string;
+    /** CLI override: Package version */
+    version?: string;
+    /** CLI override: Package description */
+    description?: string;
+    /** CLI override: Maintainer information */
+    maintainer?: string;
+    /** CLI override: Output directory for nipkg files */
+    outputDir?: string;
 }
