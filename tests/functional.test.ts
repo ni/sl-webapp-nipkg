@@ -270,21 +270,6 @@ describe('SystemLinkNipkgBuilder Basic Tests', () => {
 
         expect(config.buildDir).toBeUndefined();
     });
-
-    // SystemLinkNipkgBuilder instantiation tests are skipped due to ESM/CommonJS incompatibility in Jest
-    test.skip('should execute build command when build option is set', () => {
-        mockedExecSync.mockReturnValue(Buffer.from(''));
-
-        const config: NipkgConfig = {
-            maintainer: 'Test <test@example.com>',
-            buildDir: 'dist',
-            buildCommand: 'npm run build'
-        };
-
-        // const builder = new SystemLinkNipkgBuilder(config, { build: true });
-        // expect(builder).toBeDefined();
-        expect(config.buildCommand).toBe('npm run build');
-    });
 });
 
 describe('Build Options Validation', () => {

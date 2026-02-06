@@ -17,6 +17,8 @@ concurrency:
 env:
   GITHUB_SERVICE_USER: "EHoglid-NI"
   GITHUB_SERVICE_EMAIL: "ehoglid-ni@users.noreply.github.com"
+  HAS_NUGET_TOKEN: ${{secrets.NUGET_TOKEN != ''}}
+  HAS_GITHUBPAGESDEPLOYTOKEN: ${{secrets.GITHUBPAGESDEPLOYTOKEN != ''}}
 
 jobs:
   build:
@@ -68,7 +70,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     needs: [build, test, lint]
-    if: ${{ secrets.GITHUBPAGESDEPLOYTOKEN != '' && secrets.NUGET_TOKEN != '' && startsWith(github.ref, 'refs/heads/main') }}
+    if: env.HAS_GITHUBPAGESDEPLOYTOKEN == 'true' && env.HAS_NUGET_TOKEN == 'true' && startsWith(github.ref, 'refs/heads/main')
     steps:
       - uses: actions/checkout@v6
 
