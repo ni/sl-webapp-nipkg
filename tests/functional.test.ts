@@ -1,14 +1,13 @@
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import * as childProcess from 'child_process';
 import type { NipkgConfig } from '../src/types.js';
 
 // Mock deboa before importing builder
 jest.mock('deboa', () => ({
     // eslint-disable-next-line @typescript-eslint/naming-convention
     Deboa: jest.fn().mockImplementation(() => ({
-        package: jest.fn().mockResolvedValue(undefined)
+        package: jest.fn()
     }))
 }), { virtual: true });
 
@@ -32,8 +31,6 @@ jest.mock('chalk', () => {
 
     return chalk;
 });
-
-const mockedExecSync = jest.mocked(childProcess.execSync);
 
 // Note: SystemLinkNipkgBuilder tests are commented out as they require ESM support
 // The basic type and configuration tests below validate the core interfaces
